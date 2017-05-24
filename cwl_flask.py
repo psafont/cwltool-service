@@ -1,5 +1,6 @@
 from flask import Flask, Response, request, redirect
 import os
+import sys
 import subprocess
 import tempfile
 import json
@@ -28,7 +29,7 @@ class Job(threading.Thread):
         loghandle, self.logname = tempfile.mkstemp()
         with self.updatelock:
             self.outdir = tempfile.mkdtemp()
-            self.proc = subprocess.Popen(["cwl-runner", self.path, "-"],
+            self.proc = subprocess.Popen([sys.executable, "-m", "cwl-runner", self.path, "-"],
                                          stdin=subprocess.PIPE,
                                          stdout=subprocess.PIPE,
                                          stderr=loghandle,
