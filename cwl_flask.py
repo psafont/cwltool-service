@@ -52,11 +52,11 @@ class Job(threading.Thread):
         if self.proc.returncode == 0:
             outobj = yaml.load(self.stdoutdata)
             with self.updatelock:
-                self.status["state"] = "Success"
+                self.status["state"] = "Complete"
                 self.status["output"] = outobj
         else:
             with self.updatelock:
-                self.status["state"] = "Failed"
+                self.status["state"] = "Error"
 
     def getstatus(self):
         with self.updatelock:
