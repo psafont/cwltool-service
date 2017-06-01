@@ -1,4 +1,3 @@
-from flask import Flask, Response, request, redirect
 import os
 import sys
 import subprocess
@@ -11,7 +10,11 @@ import threading
 import time
 import copy
 
+from flask import Flask, Response, request, redirect
+from flask_cors import CORS, cross_origin
+
 app = Flask(__name__)
+CORS(app)
 
 jobs_lock = threading.Lock()
 jobs = []
