@@ -41,7 +41,8 @@ class Job(threading.Thread):
                 "run": self.path,
                 "state": "Running",
                 "input": json.loads(self.inputobj),
-                "output": None}
+                "output": None
+            }
 
     def run(self):
         self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
@@ -90,8 +91,16 @@ def runworkflow():
 
 @app.route("/jobs/<int:jobid>", methods=['GET', 'POST'])
 def jobcontrol(jobid):
+    nojob = False
     with jobs_lock:
-        job = jobs[jobid]
+        if jobid >= 0 and jobid < len(jobs):
+            job = jobs[jobid]
+        else:
+            nojob = True
+
+    if nojob:
+        return '404', 404, ""
+
     if request.method == 'POST':
         action = request.args.get("action")
         if action:
