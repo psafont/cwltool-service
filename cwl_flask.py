@@ -1,56 +1,55 @@
-import os
-import sys
-import subprocess
-import tempfile
-import json
-import yaml
-import urlparse
-import signal
-import threading
-import time
-import copy
+from os import path
+from subprocess import Popen, PIPE
+from tempfile import mkstemp, mkdtemp
+from json import dumps, loads
+from yaml import load
+from signal import SIGQUIT, SIGTSTP, SIGCONT
+from threading import Lock, Thread
+from time import sleep
+from copy import copy
 
-from flask import Flask, Response, request, redirect
-from flask_cors import CORS, cross_origin
+from flask import Flask, Response, request, redirect, abort, send_from_directory
+from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
-jobs_lock = threading.Lock()
+jobs_lock = Lock()
 jobs = []
 
-class Job(threading.Thread):
+
+class Job(Thread):
     def __init__(self, jobid, path, inputobj):
         super(Job, self).__init__()
         self.jobid = jobid
         self.path = path
         self.inputobj = inputobj
-        self.updatelock = threading.Lock()
+        self.updatelock = Lock()
         self.begin()
 
     def begin(self):
-        loghandle, self.logname = tempfile.mkstemp()
+        loghandle, self.logname = mkstemp()
         with self.updatelock:
-            self.outdir = tempfile.mkdtemp()
-            self.proc = subprocess.Popen([sys.executable, "-m", "cwl-runner", self.path, "-"],
-                                         stdin=subprocess.PIPE,
-                                         stdout=subprocess.PIPE,
-                                         stderr=loghandle,
-                                         close_fds=True,
-                                         cwd=self.outdir)
+            self.outdir = mkdtemp()
+            self.proc = Popen(["cwl-runner", "--leave-outputs", self.path, "-"],
+                              stdin=PIPE,
+                              stdout=PIPE,
+                              stderr=loghandle,
+                              close_fds=True,
+                              cwd=self.outdir)
             self.status = {
                 "id": "%sjobs/%i" % (request.url_root, self.jobid),
                 "log": "%sjobs/%i/log" % (request.url_root, self.jobid),
                 "run": self.path,
                 "state": "Running",
-                "input": json.loads(self.inputobj),
+                "input": loads(self.inputobj),
                 "output": None
             }
 
     def run(self):
         self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
         if self.proc.returncode == 0:
-            outobj = yaml.load(self.stdoutdata)
+            outobj = load(self.stdoutdata)
             with self.updatelock:
                 self.status["state"] = "Complete"
                 self.status["output"] = outobj
@@ -64,19 +63,19 @@ class Job(threading.Thread):
 
     def cancel(self):
         if self.status["state"] == "Running":
-            self.proc.send_signal(signal.SIGQUIT)
+            self.proc.send_signal(SIGQUIT)
             with self.updatelock:
                 self.status["state"] = "Canceled"
 
     def pause(self):
         if self.status["state"] == "Running":
-            self.proc.send_signal(signal.SIGTSTP)
+            self.proc.send_signal(SIGTSTP)
             with self.updatelock:
                 self.status["state"] = "Paused"
 
     def resume(self):
         if self.status["state"] == "Paused":
-            self.proc.send_signal(signal.SIGCONT)
+            self.proc.send_signal(SIGCONT)
             with self.updatelock:
                 self.status["state"] = "Running"
 
@@ -94,15 +93,9 @@ def runworkflow():
 
 @app.route("/jobs/<int:jobid>", methods=['GET', 'POST'])
 def jobcontrol(jobid):
-    nojob = False
-    with jobs_lock:
-        if jobid >= 0 and jobid < len(jobs):
-            job = jobs[jobid]
-        else:
-            nojob = True
-
-    if nojob:
-        return '404', 404, ""
+    job = getjob(jobid)
+    if not job:
+        return abort(404)
 
     if request.method == 'POST':
         action = request.args.get("action")
@@ -115,7 +108,41 @@ def jobcontrol(jobid):
                 job.resume()
 
     status = job.getstatus()
-    return json.dumps(status, indent=4), 200, ""
+    return dumps(status, indent=4), 200, ""
+
+
+@app.route("/jobs/<int:jobid>/log", methods=['GET'])
+def getlog(jobid):
+    job = getjob(jobid)
+    if not job:
+        return abort(404)
+
+    return Response(logspooler(job))
+
+
+@app.route("/jobs", methods=['GET'])
+def getjobs():
+    with jobs_lock:
+        jobscopy = copy(jobs)
+    return Response(spool(jobscopy))
+
+
+def getjob(jobid):
+    job = ""
+    with jobs_lock:
+        if 0 <= jobid < len(jobs):
+            job = jobs[jobid]
+    return job
+
+
+def spool(jobs):
+    yield "["
+    connector = ""
+    for job in jobs:
+        yield connector + dumps(job.getstatus(), indent=4)
+        if connector == "":
+            connector = ", "
+    yield "]"
 
 
 def logspooler(job):
@@ -128,29 +155,7 @@ def logspooler(job):
                 with job.updatelock:
                     if job.status["state"] != "Running":
                         break
-                time.sleep(1)
-
-@app.route("/jobs/<int:jobid>/log", methods=['GET'])
-def getlog(jobid):
-    with jobs_lock:
-        job = jobs[jobid]
-    return Response(logspooler(job))
-
-@app.route("/jobs", methods=['GET'])
-def getjobs():
-    with jobs_lock:
-        jobscopy = copy.copy(jobs)
-    def spool(jc):
-        yield "["
-        first = True
-        for j in jc:
-            if first:
-                yield json.dumps(j.getstatus(), indent=4)
-                first = False
-            else:
-                yield ", "  + json.dumps(j.getstatus(), indent=4)
-        yield "]"
-    return Response(spool(jobscopy))
+                sleep(1)
 
 if __name__ == "__main__":
     #app.debug = True
