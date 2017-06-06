@@ -120,11 +120,37 @@ def getlog(jobid):
     return Response(logspooler(job))
 
 
+@app.route("/jobs/<int:jobid>/outputs/<string:outputid>", methods=['GET'])
+def getoutput(jobid, outputid):
+    job = getjob(jobid)
+    if not job:
+        return abort(404)
+
+    output = getoutputobj(job, outputid)
+    if not output:
+        return abort(404)
+
+    (path, filename) = getfile(output)
+    if not path or not filename:
+        return abort(404)
+
+    return send_from_directory(path, filename)
+
+
 @app.route("/jobs", methods=['GET'])
 def getjobs():
     with jobs_lock:
         jobscopy = copy(jobs)
     return Response(spool(jobscopy))
+
+
+def getoutputobj(job, outputid):
+    # TODO deal with attacks and exceptions
+    return job.status["output"][outputid]
+
+
+def getfile(output):
+    return path.split(output["path"])
 
 
 def getjob(jobid):
