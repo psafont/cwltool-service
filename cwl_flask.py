@@ -8,6 +8,8 @@ from threading import Lock, Thread
 from time import sleep
 from copy import copy
 
+from future.utils import iteritems
+
 from flask import Flask, Response, request, redirect, abort, send_from_directory
 from flask_cors import CORS
 
@@ -108,6 +110,12 @@ def jobcontrol(jobid):
                 job.resume()
 
     status = job.getstatus()
+
+    #replace location so web clients can retrieve any outputs
+    if status["state"] == "Complete":
+        for name, output in iteritems(status["output"]):
+            output["location"] = '/'.join([request.host_url[:-1], "jobs", str(jobid), "output", name])
+
     return dumps(status, indent=4), 200, ""
 
 
@@ -120,7 +128,7 @@ def getlog(jobid):
     return Response(logspooler(job))
 
 
-@app.route("/jobs/<int:jobid>/outputs/<string:outputid>", methods=['GET'])
+@app.route("/jobs/<int:jobid>/output/<string:outputid>", methods=['GET'])
 def getoutput(jobid, outputid):
     job = getjob(jobid)
     if not job:
