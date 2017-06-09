@@ -2,12 +2,11 @@ import connexion
 from connexion.resolver import Resolver
 import connexion.utils as utils
 
-import threading
-import tempfile
 import subprocess
 import uuid
 import os
 import json
+
 
 class Workflow(object):
     def __init__(self, workflow_ID):
@@ -85,7 +84,6 @@ class Workflow(object):
             "state": state
         }
 
-
     def getlog(self):
         state, exit_code = self.getstate()
 
@@ -107,18 +105,22 @@ class Workflow(object):
     def cancel(self):
         pass
 
+
 def GetWorkflowStatus(workflow_ID):
     job = Workflow(workflow_ID)
     return job.getstatus()
+
 
 def GetWorkflowLog(workflow_ID):
     job = Workflow(workflow_ID)
     return job.getlog()
 
+
 def CancelWorkflow(workflow_ID):
     job = Workflow(workflow_ID)
     job.cancel()
     return job.getstatus()
+
 
 def RunWorkflow(body):
     workflow_ID = uuid.uuid4().hex
@@ -126,14 +128,17 @@ def RunWorkflow(body):
     job.run(body["workflow_url"], body["input"])
     return job.getstatus()
 
+
 def main():
     app = connexion.App(__name__, specification_dir='swagger/')
+
     def rs(x):
         return utils.get_function_from_name("cwl_runner_wes." + x)
 
     app.add_api('proto/workflow_execution.swagger.json', resolver=Resolver(rs))
 
     app.run(port=8080)
+
 
 if __name__ == "__main__":
     main()
