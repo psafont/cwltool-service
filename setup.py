@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
 import os
-import sys
-import setuptools.command.egg_info as egg_info_cmd
-import shutil
 
-from setuptools import setup, find_packages
+from distutils.core import setup
 
 SETUP_DIR = os.path.dirname(__file__)
 README = os.path.join(SETUP_DIR, 'README.md')
@@ -22,11 +19,14 @@ setup(name='cwltool_service',
       py_modules=["cwl_runner_wes"],
       install_requires=[
           'connexion',
-          'bravado'
-        ],
+          'bravado',
+          'pre-commit',
+          'PyYAML',
+          'future'
+      ],
       entry_points={
-          'console_scripts': [ "wes-server=wes_service:main",
-                               "wes-client=wes_client:main"]
+          'console_scripts': ["wes-server=wes_service:main",
+                              "wes-client=wes_client:main"]
       },
       zip_safe=True
-)
+      )
