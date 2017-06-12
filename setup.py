@@ -10,7 +10,6 @@ SETUP_DIR = os.path.dirname(__file__)
 README = os.path.join(SETUP_DIR, 'README.md')
 
 setup(name='cwltool_service',
-      packages=find_packages(),
       version='2.0',
       description='Common workflow language runner service',
       long_description=open(README).read(),
@@ -19,7 +18,8 @@ setup(name='cwltool_service',
       url="https://github.com/common-workflow-language/cwltool-service",
       download_url="https://github.com/common-workflow-language/cwltool-service",
       license='Apache 2.0',
-      py_modules=["cwl_runner_wes"],
+      packages=find_packages(exclude=['tests']),
+      # py_modules=["cwl_runner_wes"],
       install_requires=[
           'connexion',
           'bravado',
@@ -27,9 +27,11 @@ setup(name='cwltool_service',
           'PyYAML',
           'future'
       ],
+      setup_requires=['pytest-runner'],
+      test_suite='tests',
+      tests_require=['pytest', 'unittest2'],
       entry_points={
           'console_scripts': ["wes-server=wes_service:main",
                               "wes-client=wes_client:main"]
       },
-      zip_safe=True
-      )
+      zip_safe=True)
