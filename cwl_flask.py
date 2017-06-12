@@ -26,12 +26,20 @@ class Job(Thread):
         self.jobid = jobid
         self.path = path
         self.inputobj = inputobj
-        self.updatelock = Lock()
-        self.begin()
+        self.status = {
+            "id": "%sjobs/%i" % (request.url_root, self.jobid),
+            "log": "%sjobs/%i/log" % (request.url_root, self.jobid),
+            "run": self.path,
+            "state": "Running",
+            "input": loads(self.inputobj),
+            "output": None
+        }
 
-    def begin(self):
-        loghandle, self.logname = mkstemp()
+        self.stdoutdata = self.stderrdata = None
+        self.updatelock = Lock()
+
         with self.updatelock:
+            loghandle, self.logname = mkstemp()
             self.outdir = mkdtemp()
             self.proc = Popen(["cwl-runner", "--leave-outputs", self.path, "-"],
                               stdin=PIPE,
@@ -39,14 +47,6 @@ class Job(Thread):
                               stderr=loghandle,
                               close_fds=True,
                               cwd=self.outdir)
-            self.status = {
-                "id": "%sjobs/%i" % (request.url_root, self.jobid),
-                "log": "%sjobs/%i/log" % (request.url_root, self.jobid),
-                "run": self.path,
-                "state": "Running",
-                "input": loads(self.inputobj),
-                "output": None
-            }
 
     def run(self):
         self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
@@ -111,10 +111,11 @@ def jobcontrol(jobid):
 
     status = job.getstatus()
 
-    #replace location so web clients can retrieve any outputs
+    # replace location so web clients can retrieve any outputs
     if status["state"] == "Complete":
         for name, output in iteritems(status["output"]):
-            output["location"] = '/'.join([request.host_url[:-1], "jobs", str(jobid), "output", name])
+            output["location"] = '/'.join([request.host_url[:-1],
+                                           "jobs", str(jobid), "output", name])
 
     return dumps(status, indent=4), 200, ""
 
@@ -191,6 +192,7 @@ def logspooler(job):
                         break
                 sleep(1)
 
+
 if __name__ == "__main__":
-    #app.debug = True
+    # app.debug = True
     app.run()

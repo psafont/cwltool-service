@@ -10,6 +10,7 @@ import json
 _logger = logging.getLogger("cwltool")
 _logger.setLevel(logging.ERROR)
 
+
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
@@ -33,10 +34,11 @@ def main(args=None):
 
         t = StringIO.StringIO(msg)
         err = StringIO.StringIO()
-        if cwltool.main.main(["--outdir="+outdir] + args + ["-"], stdin=t, stderr=err) != 0:
+        if cwltool.main.main(["--outdir=" + outdir] + args + ["-"], stdin=t, stderr=err) != 0:
             sys.stdout.write(json.dumps({"cwl:error": err.getvalue()}))
         sys.stdout.write("\n\n")
         sys.stdout.flush()
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
