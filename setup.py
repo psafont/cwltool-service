@@ -1,13 +1,16 @@
 #!/usr/bin/env python
-
+"""
+    Common Workflow Language WES
+"""
 import os
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 SETUP_DIR = os.path.dirname(__file__)
 README = os.path.join(SETUP_DIR, 'README.md')
 
 setup(name='cwltool_service',
+      packages=find_packages(),
       version='2.0',
       description='Common workflow language runner service',
       long_description=open(README).read(),
