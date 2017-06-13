@@ -29,7 +29,11 @@ setup(name='cwltool_service',
       ],
       setup_requires=['pytest-runner'],
       test_suite='tests',
-      tests_require=['pytest', 'unittest2'],
+      tests_require=[
+          'pytest',
+          'unittest2',
+          'mock'
+      ],
       entry_points={
           'console_scripts': ["wes-server=wes_service:main",
                               "wes-client=wes_client:main"]
