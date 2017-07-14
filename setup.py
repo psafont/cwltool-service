@@ -25,7 +25,8 @@ setup(name='cwltool_service',
           'bravado',
           'pre-commit',
           'PyYAML',
-          'future'
+          'future',
+          'flask-jwt-extended'
       ],
       setup_requires=['pytest-runner'],
       test_suite='tests',

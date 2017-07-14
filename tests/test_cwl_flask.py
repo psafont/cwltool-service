@@ -14,7 +14,6 @@ class CwlFlaskTestCase(unittest2.TestCase):
     ]
 
     def test_output_obj(self):
-
         for status in self.statuses:
             with self.subTest(status=status):
                 for (key, value) in viewitems(status[u'output']):
