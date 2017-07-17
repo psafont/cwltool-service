@@ -1,4 +1,3 @@
-
 from signal import SIGQUIT, SIGTSTP, SIGCONT
 from subprocess import Popen, PIPE
 from tempfile import mkstemp, mkdtemp

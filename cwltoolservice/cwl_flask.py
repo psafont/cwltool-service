@@ -14,7 +14,7 @@ from cwltoolservice.model.job import Job
 from cwltoolservice.model.user import User
 
 APP = Flask(__name__)
-APP.config['JWT_PUBLIC_KEY'] = ''  # ???
+APP.config[u'JWT_PUBLIC_KEY'] = ''  # ???
 CORS(APP)
 JWT = JWTManager(APP)
 
@@ -33,13 +33,13 @@ def user_is_authorized(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         current_user = get_jwt_identity()
-        jobid = kwargs.get('jobid', None)
+        jobid = kwargs.get(u'jobid', None)
 
         if jobid is None:
             return abort(404)
 
         if current_user != USER_OWNS.get(jobid, None):
-            print('user isn\'t authorized!')
+            print(u'user isn\'t authorized!')
             return abort(404)
 
         return func(*args, **kwargs)
@@ -47,7 +47,7 @@ def user_is_authorized(func):
     return wrapper
 
 
-@APP.route('/run', methods=[u'POST'])
+@APP.route(u'/run', methods=[u'POST'])
 @jwt_optional
 def run_workflow():
     path = request.args[u'wf']
@@ -55,7 +55,8 @@ def run_workflow():
 
     with JOBS_LOCK:
         jobid = len(JOBS)
-        job = Job(jobid, path, request.stream.read())
+        body = request.stream.read()
+        job = Job(jobid, path, body)
         if current_user:  # non-anonymous user
             USER_OWNS[jobid] = current_user
             JOBS_OWNED_BY[current_user] = JOBS_OWNED_BY.get(current_user, []) + [jobid]
@@ -174,6 +175,6 @@ def logspooler(job):
                 sleep(1)
 
 
-if __name__ == '__main__':
+if __name__ == u'__main__':
     # app.debug = True
-    APP.run('0.0.0.0')
+    APP.run(u'0.0.0.0')
