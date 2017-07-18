@@ -6,7 +6,7 @@ from threading import Lock
 from time import sleep
 from future.utils import iteritems
 
-from flask import Flask, Response, request, redirect, abort, send_from_directory
+from flask import Flask, Response, request, redirect, abort, send_from_directory, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_optional, jwt_required, get_jwt_identity
 
@@ -35,16 +35,17 @@ def user_is_authorized(func):
         current_user = get_jwt_identity()
         jobid = kwargs.get(u'jobid', None)
 
-        if jobid is None:
-            return abort(404)
-
-        if current_user != USER_OWNS.get(jobid, None):
-            print(u'user isn\'t authorized!')
+        if jobid is None or current_user != USER_OWNS.get(jobid, None):
             return abort(404)
 
         return func(*args, **kwargs)
 
     return wrapper
+
+
+@APP.errorhandler(404)
+def page_not_found(e):
+    return jsonify(error=404, text=str(e)), 404
 
 
 @APP.route(u'/run', methods=[u'POST'])
@@ -57,11 +58,12 @@ def run_workflow():
         jobid = len(JOBS)
         body = request.stream.read()
         job = Job(jobid, path, body)
-        if current_user:  # non-anonymous user
-            USER_OWNS[jobid] = current_user
-            JOBS_OWNED_BY[current_user] = JOBS_OWNED_BY.get(current_user, []) + [jobid]
-        job.start()
         JOBS.append(job)
+
+    if current_user:  # non-anonymous user
+        USER_OWNS[jobid] = current_user
+        JOBS_OWNED_BY[current_user] = JOBS_OWNED_BY.get(current_user, []) + [jobid]
+    job.start()
     return redirect(u'/jobs/%i' % jobid, code=303)
 
 
