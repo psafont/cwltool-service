@@ -39,7 +39,6 @@ class TestEndPoints(unittest2.TestCase):
 
         self.wf = u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/draft-3/examples/1st-tool.cwl'
 
-        self.app.private_key = u'???'
         self.app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
         self.app.config[u'JWT_PRIVATE_KEY'] = u'''
 -----BEGIN RSA PRIVATE KEY-----

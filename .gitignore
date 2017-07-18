@@ -4,6 +4,7 @@
 *.egg-info/
 build/
 dist/
+.cache
 
 # editors and ides
 *.idea
