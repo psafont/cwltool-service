@@ -21,20 +21,20 @@ setup(name='cwltool_service',
       packages=find_packages(exclude=['tests']),
       # py_modules=["cwl_runner_wes"],
       install_requires=[
-          'connexion',
-          'bravado',
-          'pre-commit',
-          'PyYAML',
-          'future',
-          'flask-jwt-extended'
+          'bravado==8.4.0',
+          'connexion==1.1.9',
+          'cwltool>=1.0.20170516234254',
+          'cwl-runner==1.0',
+          'Flask==0.12.2',
+          'Flask-Cors==3.0.2',
+          'Flask-JWT-Extended==3.1.1',
+          'cryptography==2.0',
+          'PyYAML==3.12',
+          'future==0.16.0',
       ],
-      setup_requires=['pytest-runner'],
-      test_suite='tests',
-      test_require=[
-          'pytest',
-          'unittest2',
-          'mock'
-      ],
+      extras_require={
+          'test': ['pytest', 'unittest2'],
+      },
       entry_points={
           'console_scripts': ["wes-server=wes_service:main",
                               "wes-client=wes_client:main"]
