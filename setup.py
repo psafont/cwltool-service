@@ -30,7 +30,7 @@ setup(name='cwltool_service',
       ],
       setup_requires=['pytest-runner'],
       test_suite='tests',
-      tests_require=[
+      test_require=[
           'pytest',
           'unittest2',
           'mock'
