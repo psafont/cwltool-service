@@ -36,7 +36,7 @@ setup(name='cwltool_service',
           'test': ['pytest', 'unittest2'],
       },
       entry_points={
-          'console_scripts': ["wes-server=wes_service:main",
+          'console_scripts': ["wes-server=cwltoolservice.cwl_flask:main",
                               "wes-client=wes_client:main"]
       },
       zip_safe=True)

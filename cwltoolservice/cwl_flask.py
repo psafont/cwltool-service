@@ -6,6 +6,10 @@ from threading import Lock
 from time import sleep
 from future.utils import iteritems
 
+from cryptography.x509 import load_pem_x509_certificate as load_pem
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from cryptography.hazmat.backends import default_backend
+
 from flask import Flask, Response, request, redirect, abort, send_from_directory, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_optional, jwt_required, get_jwt_identity
@@ -13,8 +17,8 @@ from flask_jwt_extended import JWTManager, jwt_optional, jwt_required, get_jwt_i
 from cwltoolservice.model.job import Job
 from cwltoolservice.model.user import User
 
-APP = Flask(__name__)
-APP.config[u'JWT_PUBLIC_KEY'] = ''  # ???
+APP = Flask(__name__, instance_relative_config=True)
+
 CORS(APP)
 JWT = JWTManager(APP)
 
@@ -177,6 +181,28 @@ def logspooler(job):
                 sleep(1)
 
 
-if __name__ == u'__main__':
-    # app.debug = True
+def main():
+    # hardcoded private key location, that doesn't have a password
+    # When a real private key needs to be used use a non-hardcoded
+    # password, and do not commit it to the code repository.
+    with open('instance/private_key.pem', 'r') as key_file:
+        key = load_pem_private_key(key_file.read().encode(),
+                                   password=None,
+                                   backend=default_backend())
+        APP.config[u'JWT_PRIVATE_KEY'] = key
+    # hardcoded certificate location
+    with open('instance/public_cert.pem', 'r') as cert_file:
+        cert = load_pem(cert_file.read().encode(),
+                        default_backend())
+        APP.config[u'JWT_PUBLIC_KEY'] = cert.public_key()
+
+    # APP.debug = True
+    APP.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
+
+    # APP.config.from_object('config')
+    # APP.config.from_pyfile('config.py')
     APP.run(u'0.0.0.0')
+
+
+if __name__ == u'__main__':
+    main()
