@@ -101,8 +101,8 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
         self.client = self.app.test_client()
 
         with self.app.test_request_context():
-            self.token = self.jwt_manager._create_access_token(identity=u'jeff')
-            self.token_other = self.jwt_manager._create_access_token(identity=u'nisu')
+            self.token = self.jwt_manager.create_access_token(identity=u'jeff')
+            self.token_other = self.jwt_manager.create_access_token(identity=u'nisu')
 
     @staticmethod
     def _request(client, verb, url, token=None, data=None):
