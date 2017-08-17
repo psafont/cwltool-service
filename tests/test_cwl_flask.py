@@ -101,8 +101,8 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
         self.client = self.app.test_client()
 
         with self.app.test_request_context():
-            self.token = self.jwt_manager.create_access_token(identity=u'jeff')
-            self.token_other = self.jwt_manager.create_access_token(identity=u'nisu')
+            self.token = self.jwt_manager._create_access_token(identity=u'jeff')
+            self.token_other = self.jwt_manager._create_access_token(identity=u'nisu')
 
     @staticmethod
     def _request(client, verb, url, token=None, data=None):
@@ -127,6 +127,20 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
         status_code = response.status_code
         data = json.loads(response.get_data(as_text=True))
         return status_code, data
+
+    def test_out_of_bounds_jobid(self):
+        status_code, data = self._request(self.client, u'get',
+                                          u'/jobs/2000'
+                                          )
+        self.assertEquals(status_code, 404)
+        status_code, data = self._request(self.client, u'get',
+                                          u'/jobs/2000/log'
+                                          )
+        self.assertEquals(status_code, 404)
+        status_code, data = self._request(self.client, u'get',
+                                          u'/jobs/2000/output/test'
+                                          )
+        self.assertEquals(status_code, 404)
 
     def test_anonymous_user(self):
         status_code, data = self._request(self.client, u'post',

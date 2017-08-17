@@ -31,6 +31,23 @@ USER_OWNS = dict()
 JOBS_OWNED_BY = dict()
 
 
+# decorator that checks if the job referred by jobid exists
+def job_exists(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        jobid = kwargs.get(u'jobid', None)
+        is_a_job = False
+        with JOBS_LOCK:
+            if 0 <= jobid < len(JOBS):
+                is_a_job = True
+
+        if not is_a_job:
+            abort(404)
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 # decorator that checks if user has the job
 # intended to be used always wrapped in @jwt_otional
 def user_is_authorized(func):
@@ -73,6 +90,7 @@ def run_workflow():
 
 @APP.route(u'/jobs/<int:jobid>', methods=[u'GET', u'POST'])
 @jwt_optional
+@job_exists
 @user_is_authorized
 def job_control(jobid):
     job = getjob(jobid)
@@ -100,6 +118,7 @@ def job_control(jobid):
 
 @APP.route(u'/jobs/<int:jobid>/log', methods=[u'GET'])
 @jwt_optional
+@job_exists
 @user_is_authorized
 def get_log(jobid):
     job = getjob(jobid)
@@ -108,6 +127,7 @@ def get_log(jobid):
 
 @APP.route(u'/jobs/<int:jobid>/output/<string:outputid>', methods=[u'GET'])
 @jwt_optional
+@job_exists
 @user_is_authorized
 def get_output(jobid, outputid):
     job = getjob(jobid)
@@ -189,7 +209,7 @@ def main():
         key = load_pem_private_key(key_file.read().encode(),
                                    password=None,
                                    backend=default_backend())
-        APP.config[u'JWT_PRIVATE_KEY'] = key
+        APP.config[u'JWT_SECRET_KEY'] = key
     # hardcoded certificate location
     with open('instance/public_cert.pem', 'r') as cert_file:
         cert = load_pem(cert_file.read().encode(),
@@ -198,6 +218,7 @@ def main():
 
     # APP.debug = True
     APP.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
+    APP.config[u'JWT_ALGORITHM'] = u'RS256'
 
     # APP.config.from_object('config')
     # APP.config.from_pyfile('config.py')
