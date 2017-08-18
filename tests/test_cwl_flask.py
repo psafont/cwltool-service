@@ -2,7 +2,11 @@
 """
 Test for CWL Flask
 """
+from aap_client.tokens import encode_token
 from future.utils import viewitems
+
+from calendar import timegm
+from datetime import datetime
 
 import unittest2
 
@@ -10,7 +14,7 @@ from flask import json
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from flask_jwt_extended import JWTManager
+from aap_client.flask.client import JWTClient
 from cwltoolservice import cwl_flask
 
 
@@ -39,8 +43,7 @@ class TestEndPoints(unittest2.TestCase):
 
         self.wf = u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/draft-3/examples/1st-tool.cwl'
 
-        self.app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
-        self.app.config[u'JWT_PRIVATE_KEY'] = u'''
+        pem_data = u'''
 -----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAl897jsaYfcQY3p2GqXJkMNGvgXQisasv+iIuE+ibVRK5B2TD
 ZVt2xJ1iXnvuXVlfIgXo4MFo8N4QRp0sa4nG+q+NVy+pynNH1fcHdm9uuGeZhwYe
@@ -68,7 +71,7 @@ vJwJEwKBgQCgnWy5ek2Uw2m1yitmHJ3wSIykbTr44I3W2SbnAhS2JtaKa9HSMfBZ
 q3SN3qyDqHPrF4tGMpU9yXBx6EKKHKx3tzSv99BWOGlAaU7hHHFRUvJDE+DhKOSY
 ThIJrr1FbD1Wo69AVrMDSRz7+8PYf1FHoLPktf9Fsbkeha0uO7mPkw==
 -----END RSA PRIVATE KEY-----'''
-        pem_data = u'''
+        x509_data = u'''
 -----BEGIN CERTIFICATE-----
 MIIDezCCAmOgAwIBAgIEasdlvzANBgkqhkiG9w0BAQsFADBuMQswCQYDVQQGEwJV
 SzEXMBUGA1UECBMOQ2FtYnJpZGdlc2hpcmUxEDAOBgNVBAcTB0hpbnh0b24xDDAK
@@ -92,17 +95,38 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
 -----END CERTIFICATE-----
 '''.encode()
 
-        cert = x509.load_pem_x509_certificate(pem_data, default_backend())
-        self.app.config[u'JWT_PUBLIC_KEY'] = cert.public_key()
+        cert = x509.load_pem_x509_certificate(x509_data, default_backend())
 
+        self.app.config[u'JWT_PUBLIC_KEY'] = cert.public_key()
         self.app.config[u'JWT_ALGORITHM'] = u'RS256'
-        self.jwt_manager = JWTManager(self.app)
+
+        self.jwt_client = JWTClient(self.app)
 
         self.client = self.app.test_client()
 
+        default_claims = {
+            u'iat': self.now(),
+            u'exp': self.now() + 3600,
+            u'iss': u'aap.ebi.ac.uk',
+            u'sub': u'usr-a1d0c6e83f027327d8461063f4ac58a6',
+            u'email': u'subject@ebi.ac.uk',
+            u'name': u'John Doe',
+            u'nickname': u'73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049'
+        }
+
+        jeff_claims = default_claims.copy()
+        jeff_claims[u'sub'] = u'jeff'
+
+        nisu_claims = default_claims.copy()
+        nisu_claims[u'sub'] = u'nisu'
+
         with self.app.test_request_context():
-            self.token = self.jwt_manager.create_access_token(identity=u'jeff')
-            self.token_other = self.jwt_manager.create_access_token(identity=u'nisu')
+            self.token = encode_token(jeff_claims, pem_data)
+            self.token_other = encode_token(nisu_claims, pem_data)
+
+    @staticmethod
+    def now():
+        return timegm(datetime.utcnow().utctimetuple())
 
     @staticmethod
     def _request(client, verb, url, token=None, data=None):
@@ -160,7 +184,7 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
 
         status_code, data = self._request(self.client, u'get', u'/jobs')
         self.assertEquals(status_code, 401)
-        self.assertEquals(data, {u'msg': u'Missing Authorization Header'})
+        self.assertEquals(data, {u'message': u'Request is missing the Authorization header'})
 
     def test_token_user(self):
 

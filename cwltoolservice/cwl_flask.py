@@ -12,15 +12,15 @@ from cryptography.hazmat.backends import default_backend
 
 from flask import Flask, Response, request, redirect, abort, send_from_directory, jsonify
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, jwt_optional, jwt_required, get_jwt_identity
+from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
+from aap_client.flask.client import JWTClient
 
 from cwltoolservice.model.job import Job
-from cwltoolservice.model.user import User
 
 APP = Flask(__name__, instance_relative_config=True)
 
 CORS(APP)
-JWT = JWTManager(APP)
+JWT = JWTClient(APP)
 
 JOBS_LOCK = Lock()
 JOBS = []
@@ -53,7 +53,7 @@ def job_exists(func):
 def user_is_authorized(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        current_user = get_jwt_identity()
+        current_user = get_user()
         jobid = kwargs.get(u'jobid', None)
 
         if jobid is None or current_user != USER_OWNS.get(jobid, None):
@@ -73,7 +73,7 @@ def page_not_found(e):
 @jwt_optional
 def run_workflow():
     path = request.args[u'wf']
-    current_user = get_jwt_identity()
+    current_user = get_user()
 
     with JOBS_LOCK:
         jobid = len(JOBS)
@@ -146,7 +146,7 @@ def get_output(jobid, outputid):
 @APP.route(u'/jobs', methods=[u'GET'])
 @jwt_required
 def get_jobs():
-    job_ids = JOBS_OWNED_BY.get(get_jwt_identity(), [])
+    job_ids = JOBS_OWNED_BY.get(get_user(), [])
     jobs = []
     with JOBS_LOCK:
         for job_id in job_ids:
@@ -159,11 +159,6 @@ def getoutputobj(status, outputid):
         return status[u'output'][outputid]
     except KeyError:
         return None
-
-
-@JWT.user_loader_callback_loader
-def user_loader_callback(identity):
-    return User(identity)
 
 
 def getfile(file_dict):
