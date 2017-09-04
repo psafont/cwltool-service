@@ -1,10 +1,12 @@
 from __future__ import print_function
 import os
 from functools import wraps
-from json import dumps
 from threading import Lock
 from time import sleep
-from future.utils import iteritems
+
+from json import dumps
+
+import make_enum_json_serializable  # noqa: F401
 
 from cryptography.x509 import load_pem_x509_certificate as load_pem
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
@@ -78,7 +80,7 @@ def run_workflow():
     with JOBS_LOCK:
         jobid = len(JOBS)
         body = request.stream.read()
-        job = Job(jobid, path, body)
+        job = Job(jobid, path, body, request.url_root)
         JOBS.append(job)
 
     if current_user:  # non-anonymous user
@@ -105,15 +107,7 @@ def job_control(jobid):
             elif action == u'resume':
                 job.resume()
 
-    status = job.getstatus()
-
-    # replace location so web clients can retrieve any outputs
-    if status[u'state'] == u'Complete':
-        for name, output in iteritems(status[u'output']):
-            output[u'location'] = u'/'.join([request.host_url[:-1],
-                                             u'jobs', str(jobid), u'output', name])
-
-    return dumps(status, indent=4), 200, u''
+    return dumps(job.status()), 200, u''
 
 
 @APP.route(u'/jobs/<int:jobid>/log', methods=[u'GET'])
@@ -177,7 +171,7 @@ def spool(jobs):
     yield u'['
     connector = u''
     for job in jobs:
-        yield connector + dumps(job.getstatus(), indent=4)
+        yield connector + dumps(job.status())
         if connector == u'':
             connector = u', '
     yield u']'
@@ -200,13 +194,13 @@ def main():
     # hardcoded private key location, that doesn't have a password
     # When a real private key needs to be used use a non-hardcoded
     # password, and do not commit it to the code repository.
-    with open('instance/private_key.pem', 'r') as key_file:
+    with open('instance/private_key.pem', b'r') as key_file:
         key = load_pem_private_key(key_file.read().encode(),
                                    password=None,
                                    backend=default_backend())
         APP.config[u'JWT_SECRET_KEY'] = key
     # hardcoded certificate location
-    with open('instance/public_cert.pem', 'r') as cert_file:
+    with open('instance/public_cert.pem', b'r') as cert_file:
         cert = load_pem(cert_file.read().encode(),
                         default_backend())
         APP.config[u'JWT_PUBLIC_KEY'] = cert.public_key()

@@ -41,7 +41,7 @@ class TestEndPoints(unittest2.TestCase):
         self.app = cwl_flask.APP
         self.app.testing = True
 
-        self.wf = u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/draft-3/examples/1st-tool.cwl'
+        self.wf = u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/examples/1st-tool.cwl'
 
         pem_data = u'''
 -----BEGIN RSA PRIVATE KEY-----

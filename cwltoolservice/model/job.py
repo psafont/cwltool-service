@@ -6,77 +6,91 @@ from threading import Thread, Lock
 import json
 from enum import Enum, unique
 
-from flask import request
-
 import yaml
+from future.utils import iteritems
 
 
 class Job(Thread):
     @unique
     class State(Enum):
-        Running = 1
-        Complete = 2
-        Paused = 3
-        Error = 4
-        Canceled = 5
+        Running = "Running"
+        Complete = "Complete"
+        Paused = "Paused"
+        Error = "Error"
+        Canceled = "Cancelled"
 
-    # pylint: disable=too-many-instance-attributes
-    def __init__(self, jobid, path, inputobj):
+    def __init__(self, jobid, path, inputobj, url_root, oncompletion=lambda: None):
         super(Job, self).__init__()
-        self.jobid = jobid
-        self.path = path
-        self.inputobj = inputobj
-        self.status = {
-            'id': '%sjobs/%i' % (request.url_root, self.jobid),
-            'log': '%sjobs/%i/log' % (request.url_root, self.jobid),
-            'run': self.path,
-            'state': 'Running',
-            'input': json.loads(self.inputobj),
-            'output': None
-        }
+        self._jobid = jobid
+        self._path = path
+        self._inputobj = inputobj
+        self.oncompletion = oncompletion
+        self._url_root = url_root
 
-        self.stdoutdata = self.stderrdata = None
-        self.updatelock = Lock()
+        self._state = self.State.Running
+        self._output = None
 
-        with self.updatelock:
+        self._updatelock = Lock()
+
+        with self._updatelock:
             loghandle, self.logname = mkstemp()
             self.outdir = mkdtemp()
-            self.proc = Popen(['cwl-runner', '--leave-outputs', self.path, '-'],
+            self.proc = Popen(['cwl-runner',
+                               '--leave-outputs', self._path, '-'],
                               stdin=PIPE,
                               stdout=PIPE,
                               stderr=loghandle,
                               close_fds=True,
                               cwd=self.outdir)
 
-    def run(self):
-        self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
-        if self.proc.returncode == 0:
-            outobj = yaml.load(self.stdoutdata)
-            with self.updatelock:
-                self.status['state'] = 'Complete'
-                self.status['output'] = outobj
-        else:
-            with self.updatelock:
-                self.status['state'] = 'Error'
+    def _status(self):
+        status = {
+            'id': '%sjobs/%i' % (self._url_root, self._jobid),
+            'log': '%sjobs/%i/log' % (self._url_root, self._jobid),
+            'run': self._path,
+            'state': self._state,
+            'input': json.loads(self._inputobj),
+            'output': self._output
+        }
+        return status
 
-    def getstatus(self):
-        with self.updatelock:
-            return self.status.copy()
+    def run(self):
+        stdoutdata, _ = self.proc.communicate(self._inputobj)
+        if self.proc.returncode == 0:
+            outobj = yaml.load(stdoutdata)
+            with self._updatelock:
+                self._state = self.State.Complete
+                self._output = outobj
+
+                # replace location so web clients can retrieve any outputs
+                for name, output in iteritems(self._output):
+                    output[u'location'] = u'/'.join([self._url_root,
+                                                     u'jobs', str(self._jobid), u'output', name])
+
+                # capture output files here and upload to owncloud
+                self.oncompletion()
+        else:
+            with self._updatelock:
+                self._state = self.State.Error
+
+    def status(self):
+        with self._updatelock:
+            return self._status()
 
     def cancel(self):
-        if self.status['state'] == 'Running':
-            self.proc.send_signal(SIGQUIT)
-            with self.updatelock:
-                self.status['state'] = 'Canceled'
+        with self._updatelock:
+            if self._state == self.State.Running:
+                self.proc.send_signal(SIGQUIT)
+                self._state = self.State.Canceled
 
     def pause(self):
-        if self.status['state'] == 'Running':
-            self.proc.send_signal(SIGTSTP)
-            with self.updatelock:
-                self.status['state'] = 'Paused'
+        with self._updatelock:
+            if self._state == self.State.Running:
+                self.proc.send_signal(SIGTSTP)
+                self._state = self.State.Paused
 
     def resume(self):
-        if self.status['state'] == 'Paused':
-            self.proc.send_signal(SIGCONT)
-            with self.updatelock:
-                self.status['state'] = 'Running'
+        with self._updatelock:
+            if self._state == self.State.Paused:
+                self.proc.send_signal(SIGCONT)
+                self._state = self.State.Running
