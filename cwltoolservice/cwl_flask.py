@@ -4,6 +4,7 @@ from functools import wraps
 from threading import Lock
 from time import sleep
 
+from future.utils import iteritems
 from json import dumps
 
 import make_enum_json_serializable  # noqa: F401
@@ -66,6 +67,14 @@ def user_is_authorized(func):
     return wrapper
 
 
+# changes location from local filesystem to flask endopoint URL
+def url_location(job):
+    # replace location so web clients can retrieve any outputs
+    for name, output in iteritems(job.output()):
+        output[u'location'] = u'/'.join([job.url_root(),
+                                         u'jobs', str(job.jobid()), u'output', name])
+
+
 @APP.errorhandler(404)
 def page_not_found(e):
     return jsonify(error=404, text=str(e)), 404
@@ -80,7 +89,7 @@ def run_workflow():
     with JOBS_LOCK:
         jobid = len(JOBS)
         body = request.stream.read()
-        job = Job(jobid, path, body, request.url_root)
+        job = Job(jobid, path, body, request.url_root, oncompletion=url_location)
         JOBS.append(job)
 
     if current_user:  # non-anonymous user
