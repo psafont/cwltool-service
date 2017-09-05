@@ -9,12 +9,11 @@ from json import dumps
 
 import make_enum_json_serializable  # noqa: F401
 
-from cryptography.x509 import load_pem_x509_certificate as load_pem
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
-from cryptography.hazmat.backends import default_backend
-
 from flask import Flask, Response, request, redirect, abort, send_from_directory, jsonify
 from flask_cors import CORS
+
+from aap_client.crypto_files import load_public_from_x509
+from aap_client.crypto_files import load_private_from_pem
 from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
 from aap_client.flask.client import JWTClient
 
@@ -71,7 +70,7 @@ def user_is_authorized(func):
 def url_location(job):
     # replace location so web clients can retrieve any outputs
     for name, output in iteritems(job.output()):
-        output[u'location'] = u'/'.join([job.url_root(),
+        output[u'location'] = u'/'.join([job.url_root()[:-1],
                                          u'jobs', str(job.jobid()), u'output', name])
 
 
@@ -85,11 +84,12 @@ def page_not_found(e):
 def run_workflow():
     path = request.args[u'wf']
     current_user = get_user()
+    oncompletion = url_location
 
     with JOBS_LOCK:
         jobid = len(JOBS)
         body = request.stream.read()
-        job = Job(jobid, path, body, request.url_root, oncompletion=url_location)
+        job = Job(jobid, path, body, request.url_root, oncompletion=oncompletion, owner=current_user)
         JOBS.append(job)
 
     if current_user:  # non-anonymous user
@@ -200,26 +200,20 @@ def logspooler(job):
 
 
 def main():
-    # hardcoded private key location, that doesn't have a password
-    # When a real private key needs to be used use a non-hardcoded
-    # password, and do not commit it to the code repository.
-    with open('instance/private_key.pem', b'r') as key_file:
-        key = load_pem_private_key(key_file.read().encode(),
-                                   password=None,
-                                   backend=default_backend())
-        APP.config[u'JWT_SECRET_KEY'] = key
-    # hardcoded certificate location
-    with open('instance/public_cert.pem', b'r') as cert_file:
-        cert = load_pem(cert_file.read().encode(),
-                        default_backend())
-        APP.config[u'JWT_PUBLIC_KEY'] = cert.public_key()
-
     # APP.debug = True
     APP.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
     APP.config[u'JWT_ALGORITHM'] = u'RS256'
 
-    # APP.config.from_object('config')
-    # APP.config.from_pyfile('config.py')
+    APP.config.from_pyfile('application.cfg')
+
+    private_key_secret = APP.config[u'PRIVATE_KEY_PASSCODE']
+    key = load_private_from_pem(APP.config[u'PRIVATE_KEY_FILE'],
+                                secret=private_key_secret)
+    APP.config[u'JWT_SECRET_KEY'] = key
+
+    public_key = load_public_from_x509(APP.config[u'X509_FILE'])
+    APP.config[u'JWT_PUBLIC_KEY'] = public_key
+
     APP.run(u'0.0.0.0')
 
 

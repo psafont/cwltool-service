@@ -18,13 +18,14 @@ class Job(Thread):
         Error = u"Error"
         Canceled = u"Cancelled"
 
-    def __init__(self, jobid, path, inputobj, url_root, oncompletion=lambda *args, **kwargs: None):
+    def __init__(self, jobid, path, inputobj, url_root, oncompletion=lambda *args, **kwargs: None, owner=None):
         super(Job, self).__init__()
         self._jobid = jobid
         self._path = path
         self._inputobj = inputobj
         self.oncompletion = oncompletion
         self._url_root = url_root
+        self._owner = owner
 
         self._state = self.State.Running
         self._output = None
@@ -79,6 +80,9 @@ class Job(Thread):
 
     def url_root(self):
         return self._url_root
+
+    def owner(self):
+        return self._owner
 
     def cancel(self):
         with self._updatelock:
