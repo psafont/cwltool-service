@@ -2,12 +2,16 @@ from __future__ import print_function
 import os
 from time import sleep
 
+import requests
+from aap_client.tokens import TokenEncoder
 from future.utils import iteritems
 from json import dumps
 
 import make_enum_json_serializable  # noqa: F401
 
-from flask import Response, request, redirect, abort, send_from_directory, jsonify
+from flask import (
+    Response, request, redirect, abort, send_from_directory, jsonify
+)
 
 from aap_client.crypto_files import load_public_from_x509
 from aap_client.crypto_files import load_private_from_pem
@@ -22,8 +26,65 @@ from cwltoolservice.model.job import Job
 def url_location(job):
     # replace location so web clients can retrieve any outputs
     for name, output in iteritems(job.output()):
-        output[u'location'] = u'/'.join([job.url_root()[:-1],
-                                         u'jobs', str(job.jobid()), u'output', name])
+        output[u'location'] = u'/'.join(
+            [job.url_root()[:-1],
+             u'jobs', str(job.jobid()),
+             u'output', name])
+
+
+def upload_file_owncloud(username, password, file_location,
+                         server, folder_path, file_name):
+    # create directory:
+    # curl -v -X MKCOL -u username:password -L https://oc.ebi.ac.uk/remote.php/dav/files/username/folder_path
+
+    with open(file_location, b'r') as file_desc:
+        file_contents = file_desc.read()
+    # upload:
+    # curl -v -u username:password -d @filepath -X PUT https://oc.ebi.ac.uk/remote.php/webdav/folder_path/file_name
+    # (add file as body of the request)
+    req = requests.put(
+        u'/'.join([server, u'remote.php/webdav', folder_path, file_name]),
+        auth=(username, password),
+        data=file_contents)
+    return req.status_code
+
+
+def owncloud_uploader(private_key):
+    # changes location from local filesystem to owncloud URL,
+    # after uploading it
+    encoder = TokenEncoder(private_key)
+
+    def oncomplete(job):
+        authed = job.owner() is None
+
+        for name, output in iteritems(job.output()):
+            location_changed = False
+
+            if authed:
+                claims = {}
+                # generate token for upload
+                token = encoder.encode(claims)
+
+                folder_path = u'results'
+                file_name = u'output'
+
+                # upload file to correct directory in owncloud
+                response = upload_file_owncloud(job.owner(), token,
+                                                u'something',
+                                                u'https://oc.ebi.ac.uk',
+                                                folder_path, file_name)
+                # replace the location so web client knows about the output
+
+                location_changed = response == 200
+            else:
+                pass
+                # otherwise... how to link to original result? (from logs?)
+
+            # once it's done delete local results
+            if location_changed:
+                os.remove(output[u'path'])
+        # remove directory if it's empty?
+    return oncomplete
 
 
 @APP.errorhandler(404)
@@ -37,16 +98,19 @@ def run_workflow():
     path = request.args[u'wf']
     current_user = get_user()
     oncompletion = url_location
+    # oncompletion = owncloud_uploader(APP.config[u'JWT_SECRET_KEY'])
 
     with JOBS_LOCK:
         jobid = len(JOBS)
         body = request.stream.read()
-        job = Job(jobid, path, body, request.url_root, oncompletion=oncompletion, owner=current_user)
+        job = Job(jobid, path, body, request.url_root,
+                  oncompletion=oncompletion, owner=current_user)
         JOBS.append(job)
 
     if current_user:  # non-anonymous user
         USER_OWNS[jobid] = current_user
-        JOBS_OWNED_BY[current_user] = JOBS_OWNED_BY.get(current_user, []) + [jobid]
+        JOBS_OWNED_BY[current_user] =\
+            JOBS_OWNED_BY.get(current_user, []) + [jobid]
     job.start()
     return redirect(u'/jobs/%i' % jobid, code=303)
 
