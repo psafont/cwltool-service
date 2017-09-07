@@ -1,7 +1,5 @@
 from __future__ import print_function
 import os
-from functools import wraps
-from threading import Lock
 from time import sleep
 
 from future.utils import iteritems
@@ -9,61 +7,15 @@ from json import dumps
 
 import make_enum_json_serializable  # noqa: F401
 
-from flask import Flask, Response, request, redirect, abort, send_from_directory, jsonify
-from flask_cors import CORS
+from flask import Response, request, redirect, abort, send_from_directory, jsonify
 
 from aap_client.crypto_files import load_public_from_x509
 from aap_client.crypto_files import load_private_from_pem
 from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
-from aap_client.flask.client import JWTClient
 
+from cwltoolservice import APP, JOBS_LOCK, JOBS, USER_OWNS, JOBS_OWNED_BY
+from cwltoolservice.decorators import job_exists, user_is_authorized
 from cwltoolservice.model.job import Job
-
-APP = Flask(__name__, instance_relative_config=True)
-
-CORS(APP)
-JWT = JWTClient(APP)
-
-JOBS_LOCK = Lock()
-JOBS = []
-
-# store which users owns each job (job: user)
-USER_OWNS = dict()
-# store which jobs are owned by a user (user: [job])
-JOBS_OWNED_BY = dict()
-
-
-# decorator that checks if the job referred by jobid exists
-def job_exists(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        jobid = kwargs.get(u'jobid', None)
-        is_a_job = False
-        with JOBS_LOCK:
-            if 0 <= jobid < len(JOBS):
-                is_a_job = True
-
-        if not is_a_job:
-            abort(404)
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
-# decorator that checks if user has the job
-# intended to be used always wrapped in @jwt_otional
-def user_is_authorized(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        current_user = get_user()
-        jobid = kwargs.get(u'jobid', None)
-
-        if jobid is None or current_user != USER_OWNS.get(jobid, None):
-            return abort(404)
-
-        return func(*args, **kwargs)
-
-    return wrapper
 
 
 # changes location from local filesystem to flask endopoint URL
