@@ -19,7 +19,6 @@ setup(name='cwltool_service',
       download_url="https://github.com/common-workflow-language/cwltool-service",
       license='Apache 2.0',
       packages=find_packages(exclude=['tests']),
-      # py_modules=["cwl_runner_wes"],
       install_requires=[
           'bravado==8.4.0',
           'connexion==1.1.9',

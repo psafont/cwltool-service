@@ -1,0 +1,10 @@
+bravado==8.4.0
+connexion==1.1.9
+cwltool>=1.0.20170516234254
+cwl-runner==1.0
+Flask==0.12.2
+Flask-Cors==3.0.2
+aap-client-python==0.1.1
+cryptography==2.0
+PyYAML==3.12
+future==0.16.0
