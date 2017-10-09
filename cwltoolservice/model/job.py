@@ -2,6 +2,7 @@ from signal import SIGQUIT, SIGTSTP, SIGCONT
 from subprocess import Popen, PIPE
 from tempfile import mkstemp, mkdtemp
 from threading import Thread, Lock
+from time import sleep
 
 import json
 from enum import Enum, unique
@@ -18,7 +19,8 @@ class Job(Thread):
         Error = u"Error"
         Canceled = u"Cancelled"
 
-    def __init__(self, jobid, path, inputobj, url_root, oncompletion=lambda *args, **kwargs: None, owner=None):
+    def __init__(self, jobid, path, inputobj, url_root,
+                 oncompletion=lambda *args, **kwargs: None, owner=None):
         super(Job, self).__init__()
         self._jobid = jobid
         self._path = path
@@ -83,6 +85,18 @@ class Job(Thread):
 
     def owner(self):
         return self._owner
+
+    def logspooler(self):
+        with open(self.logname, 'r') as logfile:
+            while True:
+                buf = logfile.read(4096)
+                if buf:
+                    yield buf
+                else:
+                    with self._updatelock:
+                        if self.status[u'state'] != u'Running':
+                            break
+                    sleep(1)
 
     def cancel(self):
         with self._updatelock:

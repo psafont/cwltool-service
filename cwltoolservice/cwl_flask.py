@@ -1,13 +1,14 @@
 from __future__ import print_function
 import os
-from time import sleep
 
 from future.utils import iteritems
 from json import dumps
 
 import make_enum_json_serializable  # noqa: F401
 
-from flask import Response, request, redirect, abort, send_from_directory, jsonify
+from flask import (
+    Response, request, redirect, abort, send_from_directory, jsonify
+)
 
 from aap_client.crypto_files import load_public_from_x509
 from aap_client.crypto_files import load_private_from_pem
@@ -22,8 +23,9 @@ from cwltoolservice.model.job import Job
 def url_location(job):
     # replace location so web clients can retrieve any outputs
     for name, output in iteritems(job.output()):
-        output[u'location'] = u'/'.join([job.url_root()[:-1],
-                                         u'jobs', str(job.jobid()), u'output', name])
+        output[u'location'] =\
+            u'/'.join([job.url_root()[:-1],
+                      u'jobs', str(job.jobid()), u'output', name])
 
 
 @APP.errorhandler(404)
@@ -41,12 +43,14 @@ def run_workflow():
     with JOBS_LOCK:
         jobid = len(JOBS)
         body = request.stream.read()
-        job = Job(jobid, path, body, request.url_root, oncompletion=oncompletion, owner=current_user)
+        job = Job(jobid, path, body, request.url_root,
+                  oncompletion=oncompletion, owner=current_user)
         JOBS.append(job)
 
     if current_user:  # non-anonymous user
         USER_OWNS[jobid] = current_user
-        JOBS_OWNED_BY[current_user] = JOBS_OWNED_BY.get(current_user, []) + [jobid]
+        JOBS_OWNED_BY[current_user] =\
+            JOBS_OWNED_BY.get(current_user, []) + [jobid]
     job.start()
     return redirect(u'/jobs/%i' % jobid, code=303)
 
@@ -77,7 +81,7 @@ def job_control(jobid):
 @user_is_authorized
 def get_log(jobid):
     job = getjob(jobid)
-    return Response(logspooler(job))
+    return Response(job.logspooler())
 
 
 @APP.route(u'/jobs/<int:jobid>/output/<string:outputid>', methods=[u'GET'])
@@ -136,19 +140,6 @@ def spool(jobs):
         if connector == u'':
             connector = u', '
     yield u']'
-
-
-def logspooler(job):
-    with open(job.logname, 'r') as logfile:
-        while True:
-            buf = logfile.read(4096)
-            if buf:
-                yield buf
-            else:
-                with job.updatelock:
-                    if job.status[u'state'] != u'Running':
-                        break
-                sleep(1)
 
 
 def main():
