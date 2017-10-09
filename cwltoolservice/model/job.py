@@ -93,9 +93,8 @@ class Job(Thread):
                 if buf:
                     yield buf
                 else:
-                    with self._updatelock:
-                        if self.status[u'state'] != u'Running':
-                            break
+                    if self.status()[u'state'] != u'Running':
+                        break
                     sleep(1)
 
     def cancel(self):
