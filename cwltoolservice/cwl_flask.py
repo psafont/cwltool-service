@@ -139,7 +139,7 @@ def spool(jobs):
 
 
 def logspooler(job):
-    with open(job.logname, b'r') as logfile:
+    with open(job.logname, 'r') as logfile:
         while True:
             buf = logfile.read(4096)
             if buf:
