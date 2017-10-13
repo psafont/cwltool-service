@@ -10,8 +10,6 @@ from flask import (
     Response, request, redirect, abort, send_from_directory, jsonify
 )
 
-from aap_client.crypto_files import load_public_from_x509
-from aap_client.crypto_files import load_private_from_pem
 from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
 
 from cwltoolservice import APP, JOBS_LOCK, JOBS, USER_OWNS, JOBS_OWNED_BY
@@ -144,19 +142,6 @@ def spool(jobs):
 
 def main():
     # APP.debug = True
-    APP.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
-    APP.config[u'JWT_ALGORITHM'] = u'RS256'
-
-    APP.config.from_pyfile('application.cfg')
-
-    private_key_secret = APP.config[u'PRIVATE_KEY_PASSCODE']
-    key = load_private_from_pem(APP.config[u'PRIVATE_KEY_FILE'],
-                                secret=private_key_secret)
-    APP.config[u'JWT_SECRET_KEY'] = key
-
-    public_key = load_public_from_x509(APP.config[u'X509_FILE'])
-    APP.config[u'JWT_PUBLIC_KEY'] = public_key
-
     APP.run(u'0.0.0.0')
 
 
