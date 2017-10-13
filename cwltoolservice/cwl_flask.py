@@ -89,7 +89,7 @@ def get_log(jobid):
 def get_output(jobid, outputid):
     job = getjob(jobid)
 
-    output = getoutputobj(job.status, outputid)
+    output = getoutputobj(job.status(), outputid)
     if not output:
         return abort(404)
 
@@ -114,7 +114,7 @@ def get_jobs():
 def getoutputobj(status, outputid):
     try:
         return status[u'output'][outputid]
-    except KeyError:
+    except (KeyError, TypeError):
         return None
 
 
