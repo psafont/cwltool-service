@@ -5,4 +5,8 @@ python:
 install:
   - 'pip install setuptools -U'
   - 'pip install -e .[test]'
+before_script:
+  - 'cp instance/application.example.cfg instance/application.cfg'
+  - 'cp tests/resources/crypto_files/disposable.private.pem instance/private_key.pem'
+  - 'cp tests/resources/crypto_files/disposable.public.pem instance/public_cert.pem'
 script: python -m pytest
