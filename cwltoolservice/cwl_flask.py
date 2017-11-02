@@ -7,14 +7,45 @@ from json import dumps
 import make_enum_json_serializable  # noqa: F401
 
 from flask import (
-    Response, request, redirect, abort, send_from_directory, jsonify
+    Flask, Response, request, redirect, abort, send_from_directory, jsonify
 )
 
+from flask_cors import CORS
+
+from aap_client.crypto_files import (
+    load_public_from_x509, load_private_from_pem
+)
+from aap_client.flask.client import JWTClient
 from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
 
-from cwltoolservice import APP, JOBS_LOCK, JOBS, USER_OWNS, JOBS_OWNED_BY
+from cwltoolservice import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY
 from cwltoolservice.decorators import job_exists, user_is_authorized
 from cwltoolservice.model.job import Job
+
+
+def app():
+    app = Flask(__name__, instance_relative_config=True)
+
+    CORS(app)
+    JWTClient(app)
+
+    # configure
+    app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
+    app.config[u'JWT_ALGORITHM'] = u'RS256'
+
+    app.config.from_pyfile('application.cfg')
+
+    private_key_secret = app.config[u'PRIVATE_KEY_PASSCODE']
+    key = load_private_from_pem(app.config[u'PRIVATE_KEY_FILE'],
+                                secret=private_key_secret)
+    app.config[u'JWT_SECRET_KEY'] = key
+
+    public_key = load_public_from_x509(app.config[u'X509_FILE'])
+    app.config[u'JWT_PUBLIC_KEY'] = public_key
+    return app
+
+
+APP = app()
 
 
 # changes location from local filesystem to flask endopoint URL
