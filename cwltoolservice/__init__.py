@@ -20,7 +20,7 @@ def app():
     app = Flask(__name__, instance_relative_config=True)
 
     CORS(app)
-    jwt = JWTClient(app)
+    JWTClient(app)
 
     # configure
     app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
@@ -35,7 +35,7 @@ def app():
 
     public_key = load_public_from_x509(app.config[u'X509_FILE'])
     app.config[u'JWT_PUBLIC_KEY'] = public_key
-    return app, jwt
+    return app
 
 
-APP, JWT = app()
+APP = app()

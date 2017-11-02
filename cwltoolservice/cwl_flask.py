@@ -53,7 +53,7 @@ def run_workflow():
     return redirect(u'/jobs/%i' % jobid, code=303)
 
 
-@APP.route(u'/jobs/<int:jobid>/', methods=[u'GET', u'POST'])
+@APP.route(u'/jobs/<int:jobid>', methods=[u'GET', u'POST'], strict_slashes=False)
 @jwt_optional
 @job_exists
 @user_is_authorized
@@ -100,7 +100,7 @@ def get_output(jobid, outputid):
     return send_from_directory(path, filename)
 
 
-@APP.route(u'/jobs/', methods=[u'GET'])
+@APP.route(u'/jobs', methods=[u'GET'], strict_slashes=False)
 @jwt_required
 def get_jobs():
     job_ids = JOBS_OWNED_BY.get(get_user(), [])

@@ -246,6 +246,31 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
                                           )
         self.assertEquals(status_code, 404)
 
+    def test_trailing_slashes(self):
+        status_code, data = self._request(self.client, u'post',
+                                          u'/run?wf=' + self.wf,
+                                          data=u'{"protein": "sp:wap_rat"}'
+                                          )
+        self.assertEquals(status_code, 200)
+        self.assertDictContainsSubset({u'input': {u'protein': u'sp:wap_rat'}}, data)
+        self.assertIn(u'id', data)
+
+        job_id = data[u'id'].split('/')[-1]
+
+        status_code, data = self._request(self.client, u'get',
+                                          u'/jobs/' + job_id
+                                          )
+        status_code_s, data_s = self._request(self.client, u'get',
+                                              u'/jobs/' + job_id + '/'
+                                              )
+        self.assertEquals(status_code, status_code_s)
+        self.assertEquals(data, data_s)
+
+        status_code, data = self._request(self.client, u'get', u'/jobs')
+        status_code_s, data_s = self._request(self.client, u'get', u'/jobs/')
+        self.assertEquals(status_code, status_code_s)
+        self.assertEquals(data, data_s)
+
 
 if __name__ == u'__main__':
     unittest2.main()
