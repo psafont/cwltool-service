@@ -62,6 +62,11 @@ def page_not_found(e):
     return jsonify(error=404, text=str(e)), 404
 
 
+@APP.errorhandler(500)
+def badaboom(e):
+    return jsonify(error=500, text=u'Internal server error, please contact the administrator.'), 500
+
+
 @APP.route(u'/run', methods=[u'POST'])
 @jwt_optional
 def run_workflow():
