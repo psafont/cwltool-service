@@ -4,8 +4,6 @@ import os
 from future.utils import iteritems
 from json import dumps
 
-import make_enum_json_serializable  # noqa: F401
-
 from flask import (
     Flask, Response, request, redirect, abort, send_from_directory, jsonify
 )
@@ -17,6 +15,8 @@ from aap_client.crypto_files import (
 )
 from aap_client.flask.client import JWTClient
 from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
+
+import cwltoolservice.make_enum_json_serializable  # noqa: F401
 
 from cwltoolservice import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY
 from cwltoolservice.decorators import job_exists, user_is_authorized
