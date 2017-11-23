@@ -1,8 +1,8 @@
 from __future__ import print_function
 import os
 
-from future.utils import iteritems
 from json import dumps
+from future.utils import iteritems
 
 from flask import (
     Flask, Response, request, redirect, abort, send_from_directory, jsonify
@@ -24,46 +24,47 @@ from cwltoolservice.model.job import Job
 
 
 def app():
-    app = Flask(__name__, instance_relative_config=True)
+    web_app = Flask(__name__, instance_relative_config=True)
 
-    CORS(app)
-    JWTClient(app)
+    CORS(web_app)
+    JWTClient(web_app)
 
     # configure
-    app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
-    app.config[u'JWT_ALGORITHM'] = u'RS256'
+    web_app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
+    web_app.config[u'JWT_ALGORITHM'] = u'RS256'
 
-    app.config.from_pyfile('application.cfg')
+    web_app.config.from_pyfile('application.cfg')
 
-    private_key_secret = app.config[u'PRIVATE_KEY_PASSCODE']
-    key = load_private_from_pem(app.config[u'PRIVATE_KEY_FILE'],
+    private_key_secret = web_app.config[u'PRIVATE_KEY_PASSCODE']
+    key = load_private_from_pem(web_app.config[u'PRIVATE_KEY_FILE'],
                                 secret=private_key_secret)
-    app.config[u'JWT_SECRET_KEY'] = key
+    web_app.config[u'JWT_SECRET_KEY'] = key
 
-    public_key = load_public_from_x509(app.config[u'X509_FILE'])
-    app.config[u'JWT_PUBLIC_KEY'] = public_key
-    return app
+    public_key = load_public_from_x509(web_app.config[u'X509_FILE'])
+    web_app.config[u'JWT_PUBLIC_KEY'] = public_key
+    return web_app
 
 
 APP = app()
 
 
-# changes location from local filesystem to flask endopoint URL
+# changes location from local filesystem to flask endpoint URL
 def url_location(job):
     # replace location so web clients can retrieve any outputs
     for name, output in iteritems(job.output()):
-        output[u'location'] =\
-            u'/'.join([job.url_root()[:-1],
-                      u'jobs', str(job.jobid()), u'output', name])
+        output[u'location'] = u'/'.join(
+            job.url_root()[:-1] + [
+                u'jobs', str(job.jobid()),
+                u'output', name])
 
 
 @APP.errorhandler(404)
-def page_not_found(e):
-    return jsonify(error=404, text=str(e)), 404
+def page_not_found(error):
+    return jsonify(error=404, text=str(error)), 404
 
 
 @APP.errorhandler(500)
-def badaboom(e):
+def badaboom(error):
     return jsonify(error=500, text=u'Internal server error, please contact the administrator.'), 500
 
 
