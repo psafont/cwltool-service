@@ -41,6 +41,7 @@ class Job(Thread):
             self.proc = Popen([prefix + u'/bin/python',
                                u'-m',
                                u'cwltool',
+                               u'--user-space-docker-cmd=udocker',
                                u'--leave-outputs', self._path, u'-'],
                               stdin=PIPE,
                               stdout=PIPE,
@@ -63,12 +64,18 @@ class Job(Thread):
                 self._state = self.State.Error
 
     def _status(self):
+        inputobj = self._inputobj
+        try:
+            inputobj = json.loads(self._inputobj)
+        except ValueError:
+            pass
+
         status = {
             u'id': u'%sjobs/%i' % (self._url_root, self._jobid),
             u'log': u'%sjobs/%i/log' % (self._url_root, self._jobid),
             u'run': self._path,
             u'state': self._state,
-            u'input': json.loads(self._inputobj),
+            u'input': inputobj,
             u'output': self._output
         }
         return status
