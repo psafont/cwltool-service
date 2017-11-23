@@ -1,3 +1,4 @@
+from sys import prefix
 from signal import SIGQUIT, SIGTSTP, SIGCONT
 from subprocess import Popen, PIPE
 from tempfile import mkstemp, mkdtemp
@@ -37,7 +38,9 @@ class Job(Thread):
         with self._updatelock:
             loghandle, self.logname = mkstemp()
             self.outdir = mkdtemp()
-            self.proc = Popen([u'cwl-runner',
+            self.proc = Popen([prefix + u'/bin/python',
+                               u'-m',
+                               u'cwltool',
                                u'--leave-outputs', self._path, u'-'],
                               stdin=PIPE,
                               stdout=PIPE,
