@@ -51,11 +51,18 @@ APP = app()
 # changes location from local filesystem to flask endpoint URL
 def url_location(job):
     # replace location so web clients can retrieve any outputs
-    for name, output in iteritems(job.output()):
-        output[u'location'] = u'/'.join(
-            job.url_root()[:-1] + [
-                u'jobs', str(job.jobid()),
-                u'output', name])
+    change_location(job.output(), job.jobid(), job.url_root()[:-1])
+
+
+def change_location(obj, jobid, url_root):
+    for name, output in iteritems(obj):
+        try:
+            output[u'location'] = u'/'.join(
+                url_root + [
+                    u'jobs', str(jobid),
+                    u'output', name])
+        except (KeyError, TypeError):
+            pass
 
 
 @APP.errorhandler(404)
@@ -65,7 +72,10 @@ def page_not_found(error):
 
 @APP.errorhandler(500)
 def badaboom(error):
-    return jsonify(error=500, text=u'Internal server error, please contact the administrator.'), 500
+    return (jsonify(
+        error=500,
+        text=u'Internal server error, please contact the administrator.'),
+        500)
 
 
 @APP.route(u'/run', methods=[u'POST'])
@@ -90,7 +100,9 @@ def run_workflow():
     return redirect(u'/jobs/%i' % jobid, code=303)
 
 
-@APP.route(u'/jobs/<int:jobid>', methods=[u'GET', u'POST'], strict_slashes=False)
+@APP.route(u'/jobs/<int:jobid>',
+           methods=[u'GET', u'POST'],
+           strict_slashes=False)
 @jwt_optional
 @job_exists
 @user_is_authorized
