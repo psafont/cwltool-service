@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import logging
 
 from json import dumps
 from future.utils import iteritems
@@ -16,7 +17,7 @@ from aap_client.crypto_files import (
 from aap_client.flask.client import JWTClient
 from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
 
-import cwltoolservice.make_enum_json_serializable  # noqa: F401
+import cwltoolservice.make_enum_json_serializable  # pylint: disable=W0611
 
 from cwltoolservice import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY
 from cwltoolservice.decorators import job_exists, user_is_authorized
@@ -28,6 +29,18 @@ def app():
 
     CORS(web_app)
     JWTClient(web_app)
+
+    # flask is naughty and set up it default handlers
+    # some spanking is in order
+    del web_app.logger.handlers[:]
+
+    # log errors to stderr
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
+    handler.setFormatter(formatter)
+    web_app.logger.addHandler(handler)
+    web_app.logger.setLevel(logging.ERROR)
 
     # configure
     web_app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
@@ -57,12 +70,14 @@ def url_location(job):
 def change_location(obj, jobid, url_root):
     for name, output in iteritems(obj):
         try:
-            output[u'location'] = u'/'.join(
-                url_root + [
-                    u'jobs', str(jobid),
-                    u'output', name])
-        except (KeyError, TypeError):
-            pass
+            url_parts = [
+                url_root,
+                u'jobs', str(jobid),
+                u'output', name
+            ]
+            output[u'location'] = u'/'.join(url_parts)
+        except (KeyError, TypeError) as error:
+            APP.logger.error(u'Couldn\'t process output "%s" because of %s', name, error)
 
 
 @APP.errorhandler(404)
@@ -72,10 +87,13 @@ def page_not_found(error):
 
 @APP.errorhandler(500)
 def badaboom(error):
-    return (jsonify(
-        error=500,
-        text=u'Internal server error, please contact the administrator.'),
-        500)
+    APP.logger.error(error)
+    return (
+        jsonify(
+            error=500,
+            text=u'Internal server error, please contact the administrator.'),
+        500
+    )
 
 
 @APP.route(u'/run', methods=[u'POST'])
