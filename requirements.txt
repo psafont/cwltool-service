@@ -1,6 +1,6 @@
 bravado==8.4.0
 connexion==1.1.9
-cwltool>=1.0.20170516234254
+cwltool==1.0.20180111185617
 cwl-runner==1.0
 Flask==0.12.2
 Flask-Cors==3.0.2

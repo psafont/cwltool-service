@@ -30,7 +30,7 @@ def app():
     CORS(web_app)
     JWTClient(web_app)
 
-    # flask is naughty and set up it default handlers
+    # flask is naughty and sets up default handlers
     # some spanking is in order
     del web_app.logger.handlers[:]
 
