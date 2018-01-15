@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
+#pylint: disable=line-too-long
 """
 Test for CWL Flask
 """
-from aap_client.tokens import encode_token
-from future.utils import viewitems
 
 from calendar import timegm
 from datetime import datetime
@@ -14,26 +13,9 @@ from flask import json
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+from aap_client.tokens import encode_token
 from aap_client.flask.client import JWTClient
 from cwltoolservice import cwl_flask
-
-
-class CwlFlaskTestCase(unittest2.TestCase):
-    statuses = [
-        {u'output': {u'some': u'thing'}},
-        {u'output': {u'うんち': u'おどおど'}}
-    ]
-
-    def test_output_obj(self):
-        for status in self.statuses:
-            with self.subTest(status=status):
-                for (key, value) in viewitems(status[u'output']):
-                    self.assertEqual(cwl_flask.getoutputobj(status, key), value)
-
-    def test_output_obj_fail(self):
-        for status in self.statuses[:1]:
-            with self.subTest(status=status):
-                self.assertIsNone(cwl_flask.getoutputobj(status, u'non-existant'))
 
 
 class TestEndPoints(unittest2.TestCase):
@@ -41,7 +23,7 @@ class TestEndPoints(unittest2.TestCase):
         self.app = cwl_flask.APP
         self.app.testing = True
 
-        self.wf = u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/examples/1st-tool.cwl'
+        self.woflo = u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/examples/1st-tool.cwl'
 
         pem_data = u'''
 -----BEGIN RSA PRIVATE KEY-----
@@ -153,24 +135,24 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
         return status_code, data
 
     def test_out_of_bounds_jobid(self):
-        status_code, data = self._request(self.client, u'get',
-                                          u'/jobs/2000'
-                                          )
+        status_code, _ = self._request(self.client, u'get',
+                                       u'/jobs/2000'
+                                      )
         self.assertEquals(status_code, 404)
-        status_code, data = self._request(self.client, u'get',
-                                          u'/jobs/2000/log'
-                                          )
+        status_code, _ = self._request(self.client, u'get',
+                                       u'/jobs/2000/log'
+                                      )
         self.assertEquals(status_code, 404)
-        status_code, data = self._request(self.client, u'get',
-                                          u'/jobs/2000/output/test'
-                                          )
+        status_code, _ = self._request(self.client, u'get',
+                                       u'/jobs/2000/output/test'
+                                      )
         self.assertEquals(status_code, 404)
 
     def test_anonymous_user(self):
         status_code, data = self._request(self.client, u'post',
-                                          u'/run?wf=' + self.wf,
+                                          u'/run?wf=' + self.woflo,
                                           data=u'{"protein": "sp:wap_rat"}'
-                                          )
+                                         )
         self.assertEquals(status_code, 200)
         self.assertDictContainsSubset({u'input': {u'protein': u'sp:wap_rat'}}, data)
         self.assertIn(u'id', data)
@@ -179,7 +161,7 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
 
         status_code, data = self._request(self.client, u'get',
                                           u'/jobs/' + job_id
-                                          )
+                                         )
         self.assertEquals(status_code, 200)
 
         status_code, data = self._request(self.client, u'get', u'/jobs')
@@ -189,10 +171,10 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
     def test_token_user(self):
 
         status_code, data = self._request(self.client, u'post',
-                                          u'/run?wf=' + self.wf,
+                                          u'/run?wf=' + self.woflo,
                                           token=self.token,
                                           data=u'{"protein": "sp:wap_rat"}'
-                                          )
+                                         )
         self.assertEquals(status_code, 200)
         self.assertDictContainsSubset({u'input': {u'protein': u'sp:wap_rat'}}, data)
         self.assertIn(u'id', data)
@@ -202,7 +184,7 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
         status_code, data = self._request(self.client, u'get',
                                           u'/jobs/' + job_id,
                                           token=self.token,
-                                          )
+                                         )
         self.assertEquals(status_code, 200)
 
         status_code, data = self._request(self.client, u'get', u'/jobs', token=self.token)
@@ -214,10 +196,10 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
     def test_anonymous_snooper(self):
 
         status_code, data = self._request(self.client, u'post',
-                                          u'/run?wf=' + self.wf,
+                                          u'/run?wf=' + self.woflo,
                                           token=self.token,
                                           data=u'{"protein": "sp:wap_rat"}'
-                                          )
+                                         )
         self.assertEquals(status_code, 200)
         self.assertIn(u'id', data)
 
@@ -225,16 +207,16 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
 
         status_code, data = self._request(self.client, u'get',
                                           u'/jobs/' + job_id
-                                          )
+                                         )
         self.assertEquals(status_code, 404)
 
     def test_authenticated_snooper(self):
 
         status_code, data = self._request(self.client, u'post',
-                                          u'/run?wf=' + self.wf,
+                                          u'/run?wf=' + self.woflo,
                                           token=self.token,
                                           data=u'{"protein": "sp:wap_rat"}'
-                                          )
+                                         )
         self.assertEquals(status_code, 200)
         self.assertIn(u'id', data)
 
@@ -243,14 +225,14 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
         status_code, data = self._request(self.client, u'get',
                                           u'/jobs/' + job_id,
                                           token=self.token_other
-                                          )
+                                         )
         self.assertEquals(status_code, 404)
 
     def test_trailing_slashes(self):
         status_code, data = self._request(self.client, u'post',
-                                          u'/run?wf=' + self.wf,
+                                          u'/run?wf=' + self.woflo,
                                           data=u'{"protein": "sp:wap_rat"}'
-                                          )
+                                         )
         self.assertEquals(status_code, 200)
         self.assertDictContainsSubset({u'input': {u'protein': u'sp:wap_rat'}}, data)
         self.assertIn(u'id', data)
@@ -259,10 +241,10 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
 
         status_code, data = self._request(self.client, u'get',
                                           u'/jobs/' + job_id
-                                          )
+                                         )
         status_code_s, data_s = self._request(self.client, u'get',
                                               u'/jobs/' + job_id + '/'
-                                              )
+                                             )
         self.assertEquals(status_code, status_code_s)
         self.assertEquals(data, data_s)
 

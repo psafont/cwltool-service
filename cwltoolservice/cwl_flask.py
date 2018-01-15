@@ -63,21 +63,22 @@ APP = app()
 
 # changes location from local filesystem to flask endpoint URL
 def url_location(job):
-    # replace location so web clients can retrieve any outputs
-    change_location(job.output(), job.jobid(), job.url_root()[:-1])
+    # replace locations in the outputs so web clients can retrieve all the outputs
+    change_all_locations(job.output(), job.url_root()[:-1] + u'/jobs/' + str(job.jobid()))
 
 
-def change_location(obj, jobid, url_root):
-    for name, output in iteritems(obj):
-        try:
-            url_parts = [
-                url_root,
-                u'jobs', str(jobid),
-                u'output', name
-            ]
-            output[u'location'] = u'/'.join(url_parts)
-        except (KeyError, TypeError) as error:
-            APP.logger.error(u'Couldn\'t process output "%s" because of %s', name, error)
+def change_all_locations(obj, url_name):
+    if isinstance(obj, list):
+        for o_name, output in enumerate(obj):
+            change_all_locations(output, url_name + u'/' + str(o_name))
+    elif isinstance(obj, dict):
+        if not 'location' in obj.keys():
+            for o_name, output in iteritems(obj):
+                change_all_locations(output, url_name + u'/' + o_name)
+        else:
+            obj[u'location'] = url_name
+    else:
+        APP.logger.error(u'Couldn\'t process output "%s"', url_name)
 
 
 @APP.errorhandler(404)
@@ -177,11 +178,18 @@ def get_jobs():
             jobs.append(JOBS[job_id])
     return Response(spool(jobs))
 
-
 def getoutputobj(status, outputid):
+    path = outputid.split(u'/')
     try:
-        return status[u'output'][outputid]
-    except (KeyError, TypeError):
+        ref = status[u'output']
+        for key in path:
+            if isinstance(ref, list):
+                key = int(key)
+            ref = ref[key]
+
+        return ref
+    except (KeyError, TypeError, ValueError, IndexError) as err:
+        APP.logger.warning(u'Couldn\'t gather output "%s" because %s', outputid, str(err))
         return None
 
 
