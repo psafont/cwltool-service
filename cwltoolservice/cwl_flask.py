@@ -64,7 +64,9 @@ APP = app()
 # changes location from local filesystem to flask endpoint URL
 def url_location(job):
     # replace locations in the outputs so web clients can retrieve all the outputs
-    change_all_locations(job.output(), job.url_root()[:-1] + u'/jobs/' + str(job.jobid()))
+    change_all_locations(
+        job.output(),
+        job.url_root()[:-1] + u'/jobs/' + str(job.jobid()) + u'/output')
 
 
 def change_all_locations(obj, url_name):
@@ -78,7 +80,7 @@ def change_all_locations(obj, url_name):
         else:
             obj[u'location'] = url_name
     else:
-        APP.logger.error(u'Couldn\'t process output "%s"', url_name)
+        APP.logger.error(u'Couldn\'t process output "%s" to change the locations', url_name)
 
 
 @APP.errorhandler(404)
@@ -177,6 +179,7 @@ def get_jobs():
         for job_id in job_ids:
             jobs.append(JOBS[job_id])
     return Response(spool(jobs))
+
 
 def getoutputobj(status, outputid):
     path = outputid.split(u'/')
