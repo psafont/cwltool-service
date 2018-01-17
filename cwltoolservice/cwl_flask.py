@@ -152,7 +152,7 @@ def get_log(jobid):
     return Response(job.logspooler())
 
 
-@APP.route(u'/jobs/<int:jobid>/output/<string:outputid>', methods=[u'GET'])
+@APP.route(u'/jobs/<int:jobid>/output/<path:outputid>', methods=[u'GET'])
 @jwt_optional
 @job_exists
 @user_is_authorized
@@ -160,7 +160,7 @@ def get_output(jobid, outputid):
     job = getjob(jobid)
 
     output = getoutputobj(job.status(), outputid)
-    if not output:
+    if not output or not isfile_or_dir(output):
         return abort(404)
 
     (path, filename) = getfile(output)
@@ -192,9 +192,12 @@ def getoutputobj(status, outputid):
 
         return ref
     except (KeyError, TypeError, ValueError, IndexError) as err:
-        APP.logger.warning(u'Couldn\'t gather output "%s" because %s', outputid, str(err))
+        APP.logger.info(u'Couldn\'t retrieve output "%s" because %s', outputid, str(err))
         return None
 
+
+def isfile_or_dir(obj):
+    return isinstance(obj, dict) and u'path' in obj
 
 def getfile(file_dict):
     return os.path.split(file_dict[u'path'])
