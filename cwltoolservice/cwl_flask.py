@@ -74,7 +74,7 @@ def change_all_locations(obj, url_name):
         for o_name, output in enumerate(obj):
             change_all_locations(output, url_name + u'/' + str(o_name))
     elif isinstance(obj, dict):
-        if not 'location' in obj.keys():
+        if 'location' not in obj:
             for o_name, output in iteritems(obj):
                 change_all_locations(output, url_name + u'/' + o_name)
         else:
@@ -160,14 +160,14 @@ def get_output(jobid, outputid):
     job = getjob(jobid)
 
     output = getoutputobj(job.status(), outputid)
-    if not output or not isfile_or_dir(output):
+    if not output or not isfile(output):
         return abort(404)
 
-    (path, filename) = getfile(output)
+    (path, filename), wf_filename = getfile(output)
     if not path or not filename:
         return abort(404)
 
-    return send_from_directory(path, filename)
+    return send_from_directory(path, filename, attachment_filename=wf_filename)
 
 
 @APP.route(u'/jobs', methods=[u'GET'], strict_slashes=False)
@@ -196,11 +196,12 @@ def getoutputobj(status, outputid):
         return None
 
 
-def isfile_or_dir(obj):
-    return isinstance(obj, dict) and u'path' in obj
+def isfile(obj):
+    return isinstance(obj, dict) and u'path' in obj and u'basename' in obj
+
 
 def getfile(file_dict):
-    return os.path.split(file_dict[u'path'])
+    return os.path.split(file_dict[u'path']), file_dict[u'basename']
 
 
 def getjob(jobid):
