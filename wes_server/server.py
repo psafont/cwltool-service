@@ -17,11 +17,11 @@ from aap_client.crypto_files import (
 from aap_client.flask.client import JWTClient
 from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
 
-import cwltoolservice.make_enum_json_serializable  # pylint: disable=W0611
+import wes_server.make_enum_json_serializable  # pylint: disable=W0611
 
-from cwltoolservice import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY
-from cwltoolservice.decorators import job_exists, user_is_authorized
-from cwltoolservice.model.job import Job
+from wes_server import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY
+from wes_server.decorators import job_exists, user_is_authorized
+from wes_server.model.job import Job
 
 
 def app():
@@ -63,7 +63,8 @@ APP = app()
 
 # changes location from local filesystem to flask endpoint URL
 def url_location(job):
-    # replace locations in the outputs so web clients can retrieve all the outputs
+    # replace locations in the outputs so web clients can retrieve all
+    # the outputs
     change_all_locations(
         job.output(),
         job.url_root()[:-1] + u'/jobs/' + str(job.jobid()) + u'/output')
@@ -80,7 +81,8 @@ def change_all_locations(obj, url_name):
         else:
             obj[u'location'] = url_name
     else:
-        APP.logger.error(u'Couldn\'t process output "%s" to change the locations', url_name)
+        APP.logger.error(
+            u'Couldn\'t process output "%s" to change the locations', url_name)
 
 
 @APP.errorhandler(404)
@@ -105,23 +107,23 @@ def run_workflow():
     path = request.args[u'wf']
     current_user = get_user()
     oncompletion = url_location
+    body = request.stream.read()
 
     with JOBS_LOCK:
-        jobid = len(JOBS)
-        body = request.stream.read()
-        job = Job(jobid, path, body, request.url_root,
+        job = Job(path, body, request.url_root,
                   oncompletion=oncompletion, owner=current_user)
-        JOBS.append(job)
+        jobid = job.jobid()
+        JOBS[jobid] = job
 
     if current_user:  # non-anonymous user
         USER_OWNS[jobid] = current_user
         JOBS_OWNED_BY[current_user] =\
             JOBS_OWNED_BY.get(current_user, []) + [jobid]
     job.start()
-    return redirect(u'/jobs/%i' % jobid, code=303)
+    return redirect(u'/jobs/{}'.format(jobid), code=303)
 
 
-@APP.route(u'/jobs/<int:jobid>',
+@APP.route(u'/jobs/<string:jobid>',
            methods=[u'GET', u'POST'],
            strict_slashes=False)
 @jwt_optional
@@ -143,7 +145,7 @@ def job_control(jobid):
     return dumps(job.status()), 200, u''
 
 
-@APP.route(u'/jobs/<int:jobid>/log', methods=[u'GET'])
+@APP.route(u'/jobs/<string:jobid>/log', methods=[u'GET'])
 @jwt_optional
 @job_exists
 @user_is_authorized
@@ -152,7 +154,7 @@ def get_log(jobid):
     return Response(job.logspooler())
 
 
-@APP.route(u'/jobs/<int:jobid>/output/<path:outputid>', methods=[u'GET'])
+@APP.route(u'/jobs/<string:jobid>/output/<path:outputid>', methods=[u'GET'])
 @jwt_optional
 @job_exists
 @user_is_authorized
@@ -192,7 +194,8 @@ def getoutputobj(status, outputid):
 
         return ref
     except (KeyError, TypeError, ValueError, IndexError) as err:
-        APP.logger.info(u'Couldn\'t retrieve output "%s" because %s', outputid, str(err))
+        APP.logger.info(
+            u'Couldn\'t retrieve output "%s" because %s', outputid, str(err))
         return None
 
 
@@ -205,10 +208,8 @@ def getfile(file_dict):
 
 
 def getjob(jobid):
-    job = None
     with JOBS_LOCK:
-        if 0 <= jobid < len(JOBS):
-            job = JOBS[jobid]
+        job = JOBS[jobid]
     return job
 
 

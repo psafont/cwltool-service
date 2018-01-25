@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #pylint: disable=line-too-long
 """
-Test for CWL Flask
+Test for the workflow server
 """
 
 from calendar import timegm
@@ -15,12 +15,12 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from aap_client.tokens import encode_token
 from aap_client.flask.client import JWTClient
-from cwltoolservice import cwl_flask
+from wes_server import server
 
 
 class TestEndPoints(unittest2.TestCase):
     def setUp(self):
-        self.app = cwl_flask.APP
+        self.app = server.APP
         self.app.testing = True
 
         self.woflo = u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/examples/1st-tool.cwl'

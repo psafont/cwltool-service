@@ -1,7 +1,7 @@
 from threading import Lock
 
 JOBS_LOCK = Lock()
-JOBS = []
+JOBS = dict()
 
 # store which users owns each job (job: user)
 USER_OWNS = dict()

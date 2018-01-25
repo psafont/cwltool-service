@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 #pylint: disable=line-too-long
 """
-Test for CWL Flask
+Tests for location handling
 """
 from future.utils import viewitems
 
 import unittest2
 
-from cwltoolservice import cwl_flask
+from wes_server import server
 
 
 class CwlFlaskTestCase(unittest2.TestCase):
@@ -16,24 +16,24 @@ class CwlFlaskTestCase(unittest2.TestCase):
         for status in self.statuses:
             with self.subTest(status=status):
                 for (key, value) in viewitems(status[u'output']):
-                    self.assertEqual(cwl_flask.getoutputobj(status, key), value)
+                    self.assertEqual(server.getoutputobj(status, key), value)
 
     def test_output_obj_fail(self):
         for status in self.statuses[:1]:
             with self.subTest(status=status):
-                self.assertIsNone(cwl_flask.getoutputobj(status, u'non-existant'))
+                self.assertIsNone(server.getoutputobj(status, u'non-existant'))
 
     def test_output_location(self):
         for status in self.statuses:
             with self.subTest(status=status):
-                cwl_flask.change_all_locations(status[u'output'], u'http://server/jobs/42')
+                server.change_all_locations(status[u'output'], u'http://server/jobs/42')
 
     def test_get_output(self):
         for outputid in [u'all-out/0', u'all-out/1', u'all-out/2', u'xml']:
-            self.assertNotEqual(cwl_flask.getoutputobj(self.statuses[0], outputid), None)
+            self.assertNotEqual(server.getoutputobj(self.statuses[0], outputid), None)
 
         for outputid in [u'all-out/3', u'all-out//', u'foo/bar', u'']:
-            self.assertIsNone(cwl_flask.getoutputobj(self.statuses[0], outputid))
+            self.assertIsNone(server.getoutputobj(self.statuses[0], outputid))
 
     statuses = [
         {

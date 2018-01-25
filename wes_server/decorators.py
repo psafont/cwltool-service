@@ -3,7 +3,7 @@ from functools import wraps
 from flask import abort
 from aap_client.flask.decorators import get_user
 
-from cwltoolservice import JOBS_LOCK, JOBS, USER_OWNS
+from wes_server import JOBS_LOCK, JOBS, USER_OWNS
 
 
 def job_exists(func):
@@ -11,13 +11,11 @@ def job_exists(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         jobid = kwargs.get(u'jobid', None)
-        is_a_job = False
-        with JOBS_LOCK:
-            if 0 <= jobid < len(JOBS):
-                is_a_job = True
 
-        if not is_a_job:
-            abort(404)
+        with JOBS_LOCK:
+            if jobid not in JOBS:
+                abort(404)
+
         return func(*args, **kwargs)
 
     return wrapper
@@ -31,8 +29,9 @@ def user_is_authorized(func):
         current_user = get_user()
         jobid = kwargs.get(u'jobid', None)
 
-        if jobid is None or current_user != USER_OWNS.get(jobid, None):
-            return abort(404)
+        with JOBS_LOCK:
+            if jobid is None or current_user != USER_OWNS.get(jobid, None):
+                return abort(404)
 
         return func(*args, **kwargs)
 
