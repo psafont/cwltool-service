@@ -62,12 +62,14 @@ APP = app()
 
 
 # changes location from local filesystem to flask endpoint URL
-def url_location(job):
-    # replace locations in the outputs so web clients can retrieve all
-    # the outputs
-    change_all_locations(
-        job.output(),
-        job.url_root()[:-1] + u'/jobs/' + str(job.jobid()) + u'/output')
+def url_location(url_root):
+    def change_locations(job):
+        # replace locations in the outputs so web clients can retrieve all
+        # the outputs
+        change_all_locations(
+            job.output(),
+            url_root[:-1] + u'/jobs/' + str(job.jobid()) + u'/output')
+    return change_locations
 
 
 def change_all_locations(obj, url_name):
@@ -106,7 +108,7 @@ def badaboom(error):
 def run_workflow():
     path = request.args[u'wf']
     current_user = get_user()
-    oncompletion = url_location
+    oncompletion = url_location(request.url_root)
     body = request.stream.read()
 
     with JOBS_LOCK:

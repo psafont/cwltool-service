@@ -11,6 +11,7 @@ from enum import Enum, unique
 import yaml
 
 
+# pylint: disable=R0902
 class Job(Thread):
     @unique  # pylint: disable=R0903
     class State(Enum):
@@ -26,10 +27,11 @@ class Job(Thread):
         super(Job, self).__init__()
 
         try:
-            inputobj = json.loads(inputobj)
+            input_json = json.loads(inputobj)
         except ValueError:
-            inputobj = None
+            input_json = None
 
+        self._inputobj = inputobj
         self._oncompletion = oncompletion
         self._owner = owner
 
@@ -41,7 +43,7 @@ class Job(Thread):
             u'log': u'{}jobs/{}/log'.format(url_root, self.jobid()),
             u'run': wf_path,
             u'state': self.State.Running,
-            u'input': inputobj,
+            u'input': input_json,
             u'output': None
         }
 
