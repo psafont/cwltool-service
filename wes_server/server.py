@@ -153,7 +153,7 @@ def job_control(jobid):
 @user_is_authorized
 def get_log(jobid):
     job = getjob(jobid)
-    return Response(job.logspooler())
+    return Response(job.logspooler(), mimetype='text/event-stream')
 
 
 @APP.route(u'/jobs/<string:jobid>/output/<path:outputid>', methods=[u'GET'])
