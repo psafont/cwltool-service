@@ -97,12 +97,19 @@ class Job(Thread):
     def logspooler(self):
         with open(self.logname, 'r') as logfile:
             chunk = logfile.readline(4096)
-            while chunk or self._state() == self.State.Running:
-                if chunk:
+            try:
+                while chunk:
                     yield chunk
-                else:
-                    sleep(1)
-                chunk = logfile.readline(4096)
+                    chunk = logfile.readline(4096)
+
+                while self._state() == self.State.Running:
+                    if chunk:
+                        yield chunk
+                    else:
+                        sleep(1)
+                    chunk = logfile.readline(4096)
+            except IOError:
+                pass
 
     def cancel(self):
         with self._updatelock:
