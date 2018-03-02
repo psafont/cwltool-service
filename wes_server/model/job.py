@@ -128,7 +128,7 @@ class Job(Thread):  # pylint: disable=R0902
         with self._updatelock:
             if self._state() == self.State.Running:
                 self._proc.send_signal(SIGQUIT)
-                self._job_statu[u'state'] = self.State.Canceled
+                self._job_status[u'state'] = self.State.Canceled
 
     def pause(self):
         with self._updatelock:
