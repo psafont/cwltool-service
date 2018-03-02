@@ -1,18 +1,27 @@
 from sys import prefix
+import os
 from signal import SIGQUIT, SIGTSTP, SIGCONT
 from subprocess import Popen, PIPE
-from tempfile import mkstemp, mkdtemp
+import tempfile
 from threading import Thread, Lock
 from time import sleep
 
 import json
 from enum import Enum, unique
+from uuid import uuid4
 
 import yaml
 
 
-# pylint: disable=R0902
-class Job(Thread):
+def makedirs(path):
+    try:
+        os.makedirs(path)
+    except OSError:
+        if not os.path.isdir(path):
+            raise
+
+
+class Job(Thread):  # pylint: disable=R0902
     @unique  # pylint: disable=R0903
     class State(Enum):
         Running = u'Running'
@@ -31,16 +40,20 @@ class Job(Thread):
         except ValueError:
             input_json = None
 
+        self._uuid = uuid4()
         self._inputobj = inputobj
         self._oncompletion = oncompletion
         self._owner = owner
 
-        loghandle, self.logname = mkstemp()
-        self.outdir = mkdtemp(prefix=u'wes')
+        self.outdir = os.path.join(
+            tempfile.gettempdir(), str(self._uuid), 'out')
+        makedirs(self.outdir)
+        loghandle, self.logname =\
+            tempfile.mkstemp(dir=os.path.split(self.outdir)[0])
 
         self._job_status = {
-            u'id': u'{}jobs/{}'.format(url_root, self.jobid()),
-            u'log': u'{}jobs/{}/log'.format(url_root, self.jobid()),
+            u'id': u'{}jobs/{}'.format(url_root, self._uuid),
+            u'log': u'{}jobs/{}/log'.format(url_root, self._uuid),
             u'run': wf_path,
             u'state': self.State.Running,
             u'input': input_json,
@@ -89,7 +102,7 @@ class Job(Thread):
         return self._job_status[u'output']
 
     def jobid(self):
-        return self.outdir.split('/')[-1][3:]
+        return str(self._uuid)
 
     def owner(self):
         return self._owner
