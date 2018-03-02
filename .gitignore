@@ -5,6 +5,8 @@
 build/
 dist/
 .cache
+.tox
+*coverage*
 
 # editors and ides
 *.idea
