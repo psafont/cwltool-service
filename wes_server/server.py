@@ -102,6 +102,9 @@ def badaboom(error):
         500
     )
 
+@APP.route(u'/health', methods=[u'GET'])
+def healthcheck():
+    return Response('It\'s alive!')
 
 @APP.route(u'/run', methods=[u'POST'])
 @jwt_optional
