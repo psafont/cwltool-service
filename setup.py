@@ -8,7 +8,7 @@ with codecs.open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
     LONG_DESC = f.read()
 
 INSTALL_DEPS = [
-    'cwltool==1.0.20180116213856',
+    'cwltool==1.0.20180306163216',
     'cwl-runner==1.0',
     'Flask==0.12.2',
     'Flask-Cors==3.0.3',
