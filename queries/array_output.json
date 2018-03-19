@@ -1,0 +1,9 @@
+{
+    "email": "my@ebi.com",
+    "input_file": {
+        "class": "File",
+        "path": "https://raw.githubusercontent.com/esanzgar/webservice-cwl/master/docker_cwls/seq2.fasta"
+    },
+    "multifasta": true,
+    "phobius_format": "grp"
+}
