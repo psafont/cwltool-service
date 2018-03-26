@@ -3,7 +3,7 @@ from functools import wraps
 from flask import abort
 from aap_client.flask.decorators import get_user
 
-from wes_server import JOBS_LOCK, JOBS, USER_OWNS
+from workflow_service import JOBS_LOCK, JOBS, USER_OWNS
 
 
 def job_exists(func):

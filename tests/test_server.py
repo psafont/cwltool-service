@@ -15,7 +15,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from aap_client.tokens import encode_token
 from aap_client.flask.client import JWTClient
-from wes_server import server
+from workflow_service import server
 
 
 class TestEndPoints(unittest2.TestCase):

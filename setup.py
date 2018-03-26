@@ -63,7 +63,7 @@ setup(
     },
 
     entry_points={
-        'console_scripts': ["wes-server=wes_server.server:main"]
+        'console_scripts': ["wes-server=workflow_service.server:main"]
     },
 
     zip_safe=True)

@@ -17,11 +17,11 @@ from aap_client.crypto_files import (
 from aap_client.flask.client import JWTClient
 from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
 
-import wes_server.make_enum_json_serializable  # pylint: disable=W0611
+import workflow_service.make_enum_json_serializable  # pylint: disable=W0611
 
-from wes_server import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY
-from wes_server.decorators import job_exists, user_is_authorized
-from wes_server.model.job import Job
+from workflow_service import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY
+from workflow_service.decorators import job_exists, user_is_authorized
+from workflow_service.model.job import Job
 
 
 def app():

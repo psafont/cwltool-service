@@ -7,7 +7,7 @@ from future.utils import viewitems
 
 import unittest2
 
-from wes_server import server
+from workflow_service import server
 
 
 class CwlFlaskTestCase(unittest2.TestCase):
