@@ -7,6 +7,7 @@ dist/
 .cache
 .tox
 *coverage*
+.pytest_cache/
 
 # editors and ides
 *.idea
