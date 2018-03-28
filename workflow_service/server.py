@@ -21,7 +21,7 @@ import workflow_service.make_enum_json_serializable  # pylint: disable=W0611
 
 from workflow_service import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY
 from workflow_service.decorators import job_exists, user_is_authorized
-from workflow_service.model.job import Job
+from workflow_service.job_runner import JobRunner
 
 
 def app():
@@ -102,9 +102,11 @@ def badaboom(error):
         500
     )
 
+
 @APP.route(u'/health', methods=[u'GET'])
 def healthcheck():
     return Response('It\'s alive!')
+
 
 @APP.route(u'/run', methods=[u'POST'])
 @jwt_optional
@@ -115,8 +117,8 @@ def run_workflow():
     body = request.stream.read()
 
     with JOBS_LOCK:
-        job = Job(path, body, request.url_root,
-                  oncompletion=oncompletion, owner=current_user)
+        job = JobRunner(path, body, request.url_root,
+                        oncompletion=oncompletion, owner=current_user)
         jobid = job.jobid()
         JOBS[jobid] = job
 

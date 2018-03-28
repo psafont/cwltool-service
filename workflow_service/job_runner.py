@@ -21,7 +21,7 @@ def makedirs(path):
             raise
 
 
-class Job(Thread):  # pylint: disable=R0902
+class JobRunner(Thread):  # pylint: disable=R0902
     @unique  # pylint: disable=R0903
     class State(Enum):
         Running = u'Running'
@@ -33,7 +33,7 @@ class Job(Thread):  # pylint: disable=R0902
     # pylint: disable=R0913
     def __init__(self, wf_path, inputobj, url_root,
                  oncompletion=lambda *args, **kwargs: None, owner=None):
-        super(Job, self).__init__()
+        super(JobRunner, self).__init__()
 
         try:
             input_json = json.loads(inputobj)
