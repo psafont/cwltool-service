@@ -1,22 +1,25 @@
 stages:
   - test
 
+before_script:
+  - pip install detox
+
 py27:
   image: python:2.7
   stage: test
-  script: tox -e $(tox --listenvs | grep "py27" | tr '\n' ',')
+  script: detox -e $(tox --listenvs | grep "py27" | tr '\n' ',')
 
 py34:
   image: python:3.4
   stage: test
-  script: tox -e $(tox --listenvs | grep "py34" | tr '\n' ',')
+  script: detox -e $(tox --listenvs | grep "py34" | tr '\n' ',')
 
 py35:
   image: python:3.5
   stage: test
-  script: tox -e $(tox --listenvs | grep "py35" | tr '\n' ',')
+  script: detox -e $(tox --listenvs | grep "py35" | tr '\n' ',')
 
 py36:
   image: python:3.6
   stage: test
-  script: tox -e $(tox --listenvs | grep "py36" | tr '\n' ',')
+  script: detox -e $(tox --listenvs | grep "py36" | tr '\n' ',')
