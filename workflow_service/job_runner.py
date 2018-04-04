@@ -7,11 +7,11 @@ from threading import Thread, Lock
 from time import sleep
 
 import json
-from enum import Enum, unique
 from uuid import uuid4
 
 import yaml
 
+from workflow_service.models import State
 
 def makedirs(path):
     try:
@@ -22,14 +22,6 @@ def makedirs(path):
 
 
 class JobRunner(Thread):  # pylint: disable=R0902
-    @unique  # pylint: disable=R0903
-    class State(Enum):
-        Running = u'Running'
-        Complete = u'Complete'
-        Paused = u'Paused'
-        Error = u'Error'
-        Canceled = u'Cancelled'
-
     # pylint: disable=R0913
     def __init__(self, wf_path, inputobj, url_root,
                  oncompletion=lambda *args, **kwargs: None, owner=None):
@@ -55,7 +47,7 @@ class JobRunner(Thread):  # pylint: disable=R0902
             u'id': u'{}jobs/{}'.format(url_root, self._uuid),
             u'log': u'{}jobs/{}/log'.format(url_root, self._uuid),
             u'run': wf_path,
-            u'state': self.State.Running,
+            u'state': State.Running,
             u'input': input_json,
             u'output': None
         }
@@ -79,14 +71,14 @@ class JobRunner(Thread):  # pylint: disable=R0902
         if self._proc.returncode == 0:
             outobj = yaml.load(stdoutdata)
             with self._updatelock:
-                self._job_status[u'state'] = self.State.Complete
+                self._job_status[u'state'] = State.Complete
                 self._job_status[u'output'] = outobj
 
                 # capture output files here and upload to owncloud
                 self._oncompletion(self)
         else:
             with self._updatelock:
-                self._job_status[u'state'] = self.State.Error
+                self._job_status[u'state'] = State.Error
 
     def _status(self):
         return self._job_status
@@ -115,7 +107,7 @@ class JobRunner(Thread):  # pylint: disable=R0902
                     yield chunk
                     chunk = logfile.readline(4096)
 
-                while self._state() == self.State.Running:
+                while self._state() == State.Running:
                     if chunk:
                         yield chunk
                     else:
@@ -126,18 +118,18 @@ class JobRunner(Thread):  # pylint: disable=R0902
 
     def cancel(self):
         with self._updatelock:
-            if self._state() == self.State.Running:
+            if self._state() == State.Running:
                 self._proc.send_signal(SIGQUIT)
-                self._job_status[u'state'] = self.State.Canceled
+                self._job_status[u'state'] = State.Canceled
 
     def pause(self):
         with self._updatelock:
-            if self._state() == self.State.Running:
+            if self._state() == State.Running:
                 self._proc.send_signal(SIGTSTP)
-                self._job_status[u'state'] = self.State.Paused
+                self._job_status[u'state'] = State.Paused
 
     def resume(self):
         with self._updatelock:
-            if self._state() == self.State.Paused:
+            if self._state() == State.Paused:
                 self._proc.send_signal(SIGCONT)
-                self._job_status[u'state'] = self.State.Running
+                self._job_status[u'state'] = State.Running

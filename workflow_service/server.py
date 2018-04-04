@@ -13,6 +13,7 @@ from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
 import workflow_service.make_enum_json_serializable  # pylint: disable=W0611
 
 from workflow_service import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY, app
+from workflow_service.database import DB_SESSION
 from workflow_service.decorators import job_exists, user_is_authorized
 from workflow_service.job_runner import JobRunner
 
@@ -59,6 +60,11 @@ def badaboom(error):
             text=u'Internal server error, please contact the administrator.'),
         500
     )
+
+
+@APP.teardown_appcontext
+def shutdown_session(exception=None):  # pylint: disable=unused-argument
+    DB_SESSION.remove()
 
 
 @APP.route(u'/health', methods=[u'GET'])

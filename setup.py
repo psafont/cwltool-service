@@ -15,7 +15,9 @@ INSTALL_DEPS = [
     'aap-client-python==0.1.1',
     'cryptography==2.1.4',
     'PyYAML==3.12',
-    'future==0.16.0'
+    'future==0.16.0',
+    'SQLAlchemy==1.2.6',
+    'SQLAlchemy-Utils==0.33.2'
 ]
 TEST_DEPS = [
     'pytest',

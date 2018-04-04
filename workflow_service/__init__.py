@@ -9,6 +9,11 @@ from aap_client.crypto_files import (
     load_public_from_x509, load_private_from_pem
 )
 
+# from workflow_service.database import init_db
+# import all db models before initialising the database
+# so they are registered properly on the metadata.
+import workflow_service.models  # pylint: disable=unused-variable
+
 JOBS_LOCK = Lock()
 JOBS = dict()
 
