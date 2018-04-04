@@ -1,62 +1,20 @@
 from __future__ import print_function
 import os
-import logging
 
 from json import dumps
 from future.utils import iteritems
 
 from flask import (
-    Flask, Response, request, redirect, abort, send_from_directory, jsonify
+    Response, request, redirect, abort, send_from_directory, jsonify
 )
 
-from flask_cors import CORS
-
-from aap_client.crypto_files import (
-    load_public_from_x509, load_private_from_pem
-)
-from aap_client.flask.client import JWTClient
 from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
 
 import workflow_service.make_enum_json_serializable  # pylint: disable=W0611
 
-from workflow_service import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY
+from workflow_service import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY, app
 from workflow_service.decorators import job_exists, user_is_authorized
 from workflow_service.job_runner import JobRunner
-
-
-def app():
-    web_app = Flask(__name__, instance_relative_config=True)
-
-    CORS(web_app)
-    JWTClient(web_app)
-
-    # flask is naughty and sets up default handlers
-    # some spanking is in order
-    del web_app.logger.handlers[:]
-
-    # log errors to stderr
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-    web_app.logger.addHandler(handler)
-    web_app.logger.setLevel(logging.ERROR)
-
-    # configure
-    web_app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
-    web_app.config[u'JWT_ALGORITHM'] = u'RS256'
-
-    web_app.config.from_pyfile('application.cfg')
-
-    private_key_secret = web_app.config[u'PRIVATE_KEY_PASSCODE']
-    key = load_private_from_pem(web_app.config[u'PRIVATE_KEY_FILE'],
-                                secret=private_key_secret)
-    web_app.config[u'JWT_SECRET_KEY'] = key
-
-    public_key = load_public_from_x509(web_app.config[u'X509_FILE'])
-    web_app.config[u'JWT_PUBLIC_KEY'] = public_key
-    return web_app
-
 
 APP = app()
 
