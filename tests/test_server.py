@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#pylint: disable=line-too-long
+# pylint: disable=line-too-long
 """
 Test for the workflow server
 """
@@ -135,16 +135,17 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
         return status_code, data
 
     def test_out_of_bounds_jobid(self):
+        non_existing_job = u'00000000-0000-0000-0000-000000000000'
         status_code, _ = self._request(self.client, u'get',
-                                       u'/jobs/2000'
+                                       u'/jobs/' + non_existing_job
                                       )
         self.assertEquals(status_code, 404)
         status_code, _ = self._request(self.client, u'get',
-                                       u'/jobs/2000/log'
+                                       u'/jobs/' + non_existing_job + '/log'
                                       )
         self.assertEquals(status_code, 404)
         status_code, _ = self._request(self.client, u'get',
-                                       u'/jobs/2000/output/test'
+                                       u'/jobs/' + non_existing_job + '/output/test'
                                       )
         self.assertEquals(status_code, 404)
 
