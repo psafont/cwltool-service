@@ -9,20 +9,24 @@ before_script:
 
 py27:
   image: python:2.7
+  tag: [ docker ]
   stage: test
   script: detox -e $(tox --listenvs | grep "py27" | tr '\n' ',')
 
 py34:
   image: python:3.4
+  tag: [ docker ]
   stage: test
   script: detox -e $(tox --listenvs | grep "py34" | tr '\n' ',')
 
 py35:
   image: python:3.5
+  tag: [ docker ]
   stage: test
   script: detox -e $(tox --listenvs | grep "py35" | tr '\n' ',')
 
 py36:
   image: python:3.6
+  tag: [ docker ]
   stage: test
   script: detox -e $(tox --listenvs | grep "py36" | tr '\n' ',')
