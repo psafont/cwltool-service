@@ -16,7 +16,7 @@ class State(enum.Enum):
     Complete = u'Complete'
     Paused = u'Paused'
     Error = u'Error'
-    Canceled = u'Cancelled'
+    Cancelled = u'Cancelled'
 
 
 # pylint: disable=bad-whitespace
