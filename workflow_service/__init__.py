@@ -1,4 +1,3 @@
-from threading import Lock
 import logging
 
 from flask import Flask
@@ -9,24 +8,20 @@ from aap_client.crypto_files import (
     load_public_from_x509, load_private_from_pem
 )
 
-# from workflow_service.database import init_db
+from workflow_service.database import init_db
 # import all db models before initialising the database
 # so they are registered properly on the metadata.
-import workflow_service.models  # pylint: disable=unused-variable
-
-JOBS_LOCK = Lock()
-JOBS = dict()
-
-# store which users owns each job (job: user)
-USER_OWNS = dict()
-# store which jobs are owned by a user (user: [job])
-JOBS_OWNED_BY = dict()
+import workflow_service.models  # pylint: disable=unused-import
 
 def app():
     web_app = Flask(__name__, instance_relative_config=True)
 
     CORS(web_app)
     JWTClient(web_app)
+
+    # set up new url mapper to load uuids
+    from workflow_service.decorators import UUIDConverter
+    web_app.url_map.converters['uuid'] = UUIDConverter
 
     # flask is naughty and sets up default handlers
     # some spanking is in order
@@ -39,6 +34,9 @@ def app():
     handler.setFormatter(formatter)
     web_app.logger.addHandler(handler)
     web_app.logger.setLevel(logging.ERROR)
+
+    # load database
+    init_db()
 
     # configure
     web_app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'

@@ -1,6 +1,10 @@
+from __future__ import print_function
 import enum
+from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, Enum, String, UnicodeText
+import json
+
+from sqlalchemy import Column, DateTime, Enum, String, UnicodeText, func
 from sqlalchemy_utils import UUIDType
 
 from workflow_service.database import BASE
@@ -18,15 +22,36 @@ class State(enum.Enum):
 # pylint: disable=bad-whitespace
 class Job(BASE):  # pylint: disable=too-few-public-methods
     __tablename__ = 'jobs'
-    id            = Column(UUIDType(), primary_key=True)
-    input         = Column(UnicodeText)
+    id            = Column(UUIDType(native=True), primary_key=True, default=uuid4)
+    input_obj     = Column(UnicodeText)
     workflow      = Column(UnicodeText)
     output        = Column(UnicodeText)
     state         = Column(Enum(State))
-    creation_time = Column(DateTime)
-    end_time      = Column(DateTime)
-    user_id       = Column(String(50))
+    start_time    = Column(DateTime, server_default=func.now())
+    state_time    = Column(DateTime, onupdate=func.now())
+    owner         = Column(String(50))
     run_by_host   = Column(String(50))
 
-    def __repr__(self):
-        return '<User %r>' % (self.id)
+    def __init__(self, workflow, input_obj, hostname, owner=None):
+        self.input_obj = input_obj
+        self.workflow = workflow
+        self.state = State.Running
+        self.owner = owner
+        self.run_by_host = hostname
+
+    def status(self):
+        try:
+            input_json = json.loads(self.input_obj)
+        except (ValueError, TypeError):
+            input_json = None
+
+        status = {
+            u'id': u'/'.join([self.run_by_host[:-1], u'jobs', str(self.id)]),
+            u'log': u'/'.join([self.run_by_host[:-1], u'jobs', str(self.id), u'log']),
+            u'run': self.workflow,
+            u'state': self.state,
+            u'input': input_json,
+            u'output': self.output
+        }
+
+        return status

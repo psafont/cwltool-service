@@ -134,20 +134,27 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
         data = json.loads(response.get_data(as_text=True))
         return status_code, data
 
-    def test_out_of_bounds_jobid(self):
-        non_existing_job = u'00000000-0000-0000-0000-000000000000'
-        status_code, _ = self._request(self.client, u'get',
-                                       u'/jobs/' + non_existing_job
-                                      )
-        self.assertEquals(status_code, 404)
-        status_code, _ = self._request(self.client, u'get',
-                                       u'/jobs/' + non_existing_job + '/log'
-                                      )
-        self.assertEquals(status_code, 404)
-        status_code, _ = self._request(self.client, u'get',
-                                       u'/jobs/' + non_existing_job + '/output/test'
-                                      )
-        self.assertEquals(status_code, 404)
+    def test_invalid_jobids(self):
+        not_really_jobs = [
+            (u'None', u'None'),
+            (u'Number', u'1'),
+            (u'Random Letters', u'Im-a-job'),
+            (u'Out of bounds UUID', u'00000000-0000-0000-0000-000000000000')
+        ]
+        for (name, not_a_good_job) in not_really_jobs:
+            with self.subTest(token=name):
+                status_code, _ = self._request(self.client, u'get',
+                                               u'/jobs/' + not_a_good_job
+                                              )
+                self.assertEquals(status_code, 404)
+                status_code, _ = self._request(self.client, u'get',
+                                               u'/jobs/' + not_a_good_job + '/log'
+                                              )
+                self.assertEquals(status_code, 404)
+                status_code, _ = self._request(self.client, u'get',
+                                               u'/jobs/' + not_a_good_job + '/output/test'
+                                              )
+                self.assertEquals(status_code, 404)
 
     def test_anonymous_user(self):
         status_code, data = self._request(self.client, u'post',
@@ -189,8 +196,9 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
         self.assertEquals(status_code, 200)
 
         status_code, data = self._request(self.client, u'get', u'/jobs', token=self.token)
-        id_list = [job[u'id'].split('/')[-1] for job in data]
         self.assertEquals(status_code, 200)
+
+        id_list = [job[u'id'].split('/')[-1] for job in data]
         self.assertIn(job_id, id_list,
                       'The job id ({}) just created should be visible in /jobs'.format(job_id))
 
@@ -228,6 +236,13 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
                                           token=self.token_other
                                          )
         self.assertEquals(status_code, 404)
+
+        status_code, data = self._request(self.client, u'get', u'/jobs', token=self.token_other)
+        self.assertEquals(status_code, 200)
+
+        id_list = [job[u'id'].split('/')[-1] for job in data]
+        self.assertNotIn(job_id, id_list,
+                         'The job id ({}) from other users should not be visible in /jobs'.format(job_id))
 
     def test_trailing_slashes(self):
         status_code, data = self._request(self.client, u'post',

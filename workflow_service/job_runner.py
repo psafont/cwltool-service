@@ -6,12 +6,10 @@ import tempfile
 from threading import Thread, Lock
 from time import sleep
 
-import json
-from uuid import uuid4
-
 import yaml
 
 from workflow_service.models import State
+
 
 def makedirs(path):
     try:
@@ -23,34 +21,35 @@ def makedirs(path):
 
 class JobRunner(Thread):  # pylint: disable=R0902
     # pylint: disable=R0913
-    def __init__(self, wf_path, inputobj, url_root,
-                 oncompletion=lambda *args, **kwargs: None, owner=None):
+    """
+    Args:
+        onsuccess: action that is performed when any job finishes
+                   successfully. Its signature must be in the form of
+                   f(JobRunner) -> None
+        onfailure: action that is performed when any job fails.
+                   Its signature must be in the form of
+                   f(JobRunner) -> None
+    """
+    def __init__(self, wf_path, input_obj, uuid,
+                 onsuccess=lambda *args, **kwargs: None,
+                 onfailure=lambda *args, **kwargs: None,
+                 owner=None):
         super(JobRunner, self).__init__()
 
-        try:
-            input_json = json.loads(inputobj)
-        except ValueError:
-            input_json = None
-
-        self._uuid = uuid4()
-        self._inputobj = inputobj
-        self._oncompletion = oncompletion
+        self._inputobj = input_obj
+        self._onsuccess = onsuccess
+        self._onfailure = onfailure
         self._owner = owner
+        self.uuid = uuid
+
+        self.state = State.Running
+        self.output = None
 
         self.outdir = os.path.join(
-            tempfile.gettempdir(), str(self._uuid), 'out')
+            tempfile.gettempdir(), str(self.uuid), 'out')
         makedirs(self.outdir)
         loghandle, self.logname =\
             tempfile.mkstemp(dir=os.path.split(self.outdir)[0])
-
-        self._job_status = {
-            u'id': u'{}jobs/{}'.format(url_root, self._uuid),
-            u'log': u'{}jobs/{}/log'.format(url_root, self._uuid),
-            u'run': wf_path,
-            u'state': State.Running,
-            u'input': input_json,
-            u'output': None
-        }
 
         self._updatelock = Lock()
 
@@ -71,33 +70,14 @@ class JobRunner(Thread):  # pylint: disable=R0902
         if self._proc.returncode == 0:
             outobj = yaml.load(stdoutdata)
             with self._updatelock:
-                self._job_status[u'state'] = State.Complete
-                self._job_status[u'output'] = outobj
+                self.state = State.Complete
+                self.output = outobj
 
-                # capture output files here and upload to owncloud
-                self._oncompletion(self)
+                self._onsuccess(self)
         else:
             with self._updatelock:
-                self._job_status[u'state'] = State.Error
-
-    def _status(self):
-        return self._job_status
-
-    def _state(self):
-        return self._job_status[u'state']
-
-    def status(self):
-        with self._updatelock:
-            return self._status()
-
-    def output(self):
-        return self._job_status[u'output']
-
-    def jobid(self):
-        return str(self._uuid)
-
-    def owner(self):
-        return self._owner
+                self.state = State.Error
+                self._onfailure(self)
 
     def logspooler(self):
         with open(self.logname, 'r') as logfile:
@@ -107,7 +87,7 @@ class JobRunner(Thread):  # pylint: disable=R0902
                     yield chunk
                     chunk = logfile.readline(4096)
 
-                while self._state() == State.Running:
+                while self.state == State.Running:
                     if chunk:
                         yield chunk
                     else:
@@ -118,18 +98,18 @@ class JobRunner(Thread):  # pylint: disable=R0902
 
     def cancel(self):
         with self._updatelock:
-            if self._state() == State.Running:
+            if self.state == State.Running:
                 self._proc.send_signal(SIGQUIT)
-                self._job_status[u'state'] = State.Canceled
+                self.state = State.Canceled
 
     def pause(self):
         with self._updatelock:
-            if self._state() == State.Running:
+            if self.state == State.Running:
                 self._proc.send_signal(SIGTSTP)
-                self._job_status[u'state'] = State.Paused
+                self.state = State.Paused
 
     def resume(self):
         with self._updatelock:
-            if self._state() == State.Paused:
+            if self.state == State.Paused:
                 self._proc.send_signal(SIGCONT)
-                self._job_status[u'state'] = State.Running
+                self.state = State.Running
