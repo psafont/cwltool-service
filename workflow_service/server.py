@@ -14,12 +14,18 @@ from sqlalchemy.exc import SQLAlchemyError
 import workflow_service.make_enum_json_serializable  # pylint: disable=W0611
 
 from workflow_service import app
-from workflow_service.database import DB_SESSION
-from workflow_service.decorators import user_owns_job
-from workflow_service.job_runner import JobRunner
-from workflow_service.models import Job
 
+# We need to initialize the database engine before importing the models and
+# its dependencies because what these depend on it being ready to go.
+# We cannot have the database ready at the beginning because the URL to
+# establish the connection is gathered by Flask
 APP = app()
+
+from workflow_service.database import DB_SESSION # pylint: disable=C0413
+from workflow_service.models import Job # pylint: disable=C0413
+from workflow_service.decorators import user_owns_job # pylint: disable=C0413
+from workflow_service.job_runner import JobRunner # pylint: disable=C0413
+
 
 
 # changes location from local filesystem to flask endpoint URL
