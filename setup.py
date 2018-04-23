@@ -17,6 +17,7 @@ INSTALL_DEPS = [
     'PyYAML==3.12',
     'future==0.16.0',
     'SQLAlchemy==1.2.6',
+    'psycopg2==2.7.4',
     'SQLAlchemy-Utils==0.33.2'
 ]
 TEST_DEPS = [
