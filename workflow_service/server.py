@@ -63,7 +63,7 @@ def update_job(job_runner):
         session = DB_SESSION()
         job = session.query(Job).filter(Job.id == job_runner.uuid).first()
         # update job in db
-        job.status = job_runner.status
+        job.state = job_runner.state
         job.output = job_runner.output
         session.commit()
     except SQLAlchemyError:
