@@ -33,12 +33,13 @@ class TestEndPointAccess(unittest2.TestCase):
                 self.assertEquals(status_code, 404)
 
     def test_anonymous_user(self):
+        input_data = u'{"protein": "sp:wap_rat"}'
         status_code, data = request(self.client, u'post',
                                     u'/run?wf=' + self.woflo,
-                                    data=u'{"protein": "sp:wap_rat"}'
+                                    data=input_data
                                    )
         self.assertEquals(status_code, 200)
-        self.assertDictContainsSubset({u'input': {u'protein': u'sp:wap_rat'}}, data)
+        self.assertDictContainsSubset({u'input': input_data}, data)
         self.assertIn(u'id', data)
 
         job_id = data[u'id'].split('/')[-1]
@@ -53,14 +54,14 @@ class TestEndPointAccess(unittest2.TestCase):
         self.assertEquals(data, {u'message': u'Request is missing the Authorization header'})
 
     def test_token_user(self):
-
+        input_data = u'{"protein": "sp:wap_rat"}'
         status_code, data = request(self.client, u'post',
                                     u'/run?wf=' + self.woflo,
                                     token=self.token,
-                                    data=u'{"protein": "sp:wap_rat"}'
+                                    data=input_data
                                    )
         self.assertEquals(status_code, 200)
-        self.assertDictContainsSubset({u'input': {u'protein': u'sp:wap_rat'}}, data)
+        self.assertDictContainsSubset({u'input': input_data}, data)
         self.assertIn(u'id', data)
 
         job_id = data[u'id'].split('/')[-1]
@@ -79,11 +80,11 @@ class TestEndPointAccess(unittest2.TestCase):
                       'The job id ({}) just created should be visible in /jobs'.format(job_id))
 
     def test_anonymous_snooper(self):
-
+        input_data = u'{"protein": "sp:wap_rat"}'
         status_code, data = request(self.client, u'post',
                                     u'/run?wf=' + self.woflo,
                                     token=self.token,
-                                    data=u'{"protein": "sp:wap_rat"}'
+                                    data=input_data
                                    )
         self.assertEquals(status_code, 200)
         self.assertIn(u'id', data)
@@ -96,11 +97,11 @@ class TestEndPointAccess(unittest2.TestCase):
         self.assertEquals(status_code, 404)
 
     def test_authenticated_snooper(self):
-
+        input_data = u'{"protein": "sp:wap_rat"}'
         status_code, data = request(self.client, u'post',
                                     u'/run?wf=' + self.woflo,
                                     token=self.token,
-                                    data=u'{"protein": "sp:wap_rat"}'
+                                    data=input_data
                                    )
         self.assertEquals(status_code, 200)
         self.assertIn(u'id', data)
@@ -122,12 +123,13 @@ class TestEndPointAccess(unittest2.TestCase):
                          .format(job_id))
 
     def test_trailing_slashes(self):
+        input_data = u'{"protein": "sp:wap_rat"}'
         status_code, data = request(self.client, u'post',
                                     u'/run?wf=' + self.woflo,
-                                    data=u'{"protein": "sp:wap_rat"}'
+                                    data=input_data
                                    )
         self.assertEquals(status_code, 200)
-        self.assertDictContainsSubset({u'input': {u'protein': u'sp:wap_rat'}}, data)
+        self.assertDictContainsSubset({u'input': input_data}, data)
         self.assertIn(u'id', data)
 
         job_id = data[u'id'].split('/')[-1]

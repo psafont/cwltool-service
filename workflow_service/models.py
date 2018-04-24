@@ -5,7 +5,7 @@ from uuid import uuid4
 import json
 
 from sqlalchemy import Column, DateTime, Enum, String, UnicodeText, func
-from sqlalchemy_utils import UUIDType
+from sqlalchemy_utils import JSONType, UUIDType
 
 from workflow_service.database import BASE
 
@@ -23,10 +23,10 @@ class State(enum.Enum):
 class Job(BASE):  # pylint: disable=too-few-public-methods
     __tablename__ = 'jobs'
     id            = Column(UUIDType(native=True), primary_key=True, default=uuid4)
-    input_obj     = Column(UnicodeText)
+    input_obj     = Column(JSONType)
     workflow      = Column(UnicodeText)
-    output        = Column(UnicodeText)
-    state         = Column(Enum(State))
+    output        = Column(JSONType)
+    state         = Column(Enum(State), default=State.Running)
     start_time    = Column(DateTime, server_default=func.now())
     state_time    = Column(DateTime, onupdate=func.now())
     owner         = Column(String(50))
@@ -35,7 +35,6 @@ class Job(BASE):  # pylint: disable=too-few-public-methods
     def __init__(self, workflow, input_obj, hostname, owner=None):
         self.input_obj = input_obj
         self.workflow = workflow
-        self.state = State.Running
         self.owner = owner
         self.run_by_host = hostname
 
