@@ -2,8 +2,6 @@ from __future__ import print_function
 import enum
 from uuid import uuid4
 
-import json
-
 from sqlalchemy import Column, DateTime, Enum, String, UnicodeText, func
 from sqlalchemy_utils import JSONType, UUIDType
 
@@ -23,7 +21,7 @@ class State(enum.Enum):
 class Job(BASE):  # pylint: disable=too-few-public-methods
     __tablename__ = 'jobs'
     id            = Column(UUIDType(native=True), primary_key=True, default=uuid4)
-    input_obj     = Column(JSONType)
+    input_json    = Column(JSONType)
     workflow      = Column(UnicodeText)
     output        = Column(JSONType)
     state         = Column(Enum(State), default=State.Running)
@@ -32,24 +30,19 @@ class Job(BASE):  # pylint: disable=too-few-public-methods
     owner         = Column(String(50))
     run_by_host   = Column(String(50))
 
-    def __init__(self, workflow, input_obj, hostname, owner=None):
-        self.input_obj = input_obj
+    def __init__(self, workflow, input_json, hostname, owner=None):
+        self.input_json = input_json
         self.workflow = workflow
         self.owner = owner
         self.run_by_host = hostname
 
     def status(self):
-        try:
-            input_json = json.loads(self.input_obj)
-        except (ValueError, TypeError):
-            input_json = None
-
         status = {
             u'id': u'/'.join([self.run_by_host[:-1], u'jobs', str(self.id)]),
             u'log': u'/'.join([self.run_by_host[:-1], u'jobs', str(self.id), u'log']),
             u'run': self.workflow,
             u'state': self.state,
-            u'input': input_json,
+            u'input': self.input_json,
             u'output': self.output
         }
 
