@@ -9,7 +9,7 @@ BASE = None
 # pylint: disable=global-statement
 def init_db_engine(db_uri):
     global ENGINE
-    ENGINE = create_engine(db_uri, convert_unicode=True, echo=False)
+    ENGINE = create_engine(db_uri, convert_unicode=True, echo=False, client_encoding='utf8')
 
     global DB_SESSION
     DB_SESSION = scoped_session(sessionmaker(bind=ENGINE))

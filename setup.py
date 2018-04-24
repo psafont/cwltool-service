@@ -12,7 +12,7 @@ INSTALL_DEPS = [
     'cwl-runner==1.0',
     'Flask==0.12.2',
     'Flask-Cors==3.0.3',
-    'aap-client-python==0.1.3',
+    'aap-client-python==0.1.4',
     'cryptography==2.2.2',
     'PyYAML==3.12',
     'future==0.16.0',
