@@ -1,5 +1,12 @@
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
+
 stages:
   - test
+
+cache:
+  paths:
+    - .cache/pip
 
 before_script:
   - pip install tox
