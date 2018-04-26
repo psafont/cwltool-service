@@ -49,6 +49,11 @@ class TestEndPointAccess(unittest2.TestCase):
                                    )
         self.assertEquals(status_code, 200)
 
+        status_code, data = request(self.client, u'get',
+                                    u'/jobs/' + job_id + u'/log'
+                                   )
+        self.assertEquals(status_code, 200)
+
         status_code, data = request(self.client, u'get', u'/jobs')
         self.assertEquals(status_code, 401)
         self.assertEquals(data, {u'message': u'Request is missing the Authorization header'})

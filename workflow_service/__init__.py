@@ -10,6 +10,9 @@ from aap_client.crypto_files import (
 
 from workflow_service.database import init_db_engine, init_db_models
 
+# jobid -> runner
+RUNNER_FOR = dict()
+
 def init_loggers(web_app):
     # flask is naughty and sets up default handlers
     # some spanking is in order
@@ -23,6 +26,7 @@ def init_loggers(web_app):
     web_app.logger.addHandler(handler)
     web_app.logger.setLevel(logging.ERROR)
 
+
 def init_db(db_uri):
     init_db_engine(db_uri)
     # import all db models before initialising the database
@@ -30,9 +34,11 @@ def init_db(db_uri):
     from workflow_service import models  # pylint: disable=unused-variable
     init_db_models()
 
+
 def init_extensions(web_app):
     CORS(web_app)
     JWTClient(web_app)
+
 
 def configure_app(web_app, config):
     web_app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
@@ -53,6 +59,7 @@ def configure_app(web_app, config):
 
     public_key = load_public_from_x509(web_app.config[u'X509_FILE'])
     web_app.config[u'JWT_PUBLIC_KEY'] = public_key
+
 
 def app(config='application.cfg'):
     web_app = Flask(__name__, instance_relative_config=True)

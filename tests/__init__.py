@@ -122,5 +122,9 @@ def request(client, verb, url, token=None, data=None):
         response = client.get(response.headers[u'Location'], **kwargs)
 
     status_code = response.status_code
-    data = json.loads(response.get_data(as_text=True))
+    try:
+        data = json.loads(response.get_data(as_text=True))
+    except ValueError:
+        pass
+        # pass data as-is, without deserializing (for logs)
     return status_code, data

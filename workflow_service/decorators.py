@@ -45,6 +45,5 @@ class UUIDConverter(BaseConverter):
         except ValueError:
             abort(404)
 
-
     def to_url(self, value):
         return str(value)
