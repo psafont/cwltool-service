@@ -2,7 +2,7 @@ stages:
   - test
 
 before_script:
-  - pip install detox
+  - pip install tox
   - cp instance/application.example.cfg instance/application.cfg
   - cp tests/resources/crypto_files/disposable.private.pem instance/private_key.pem
   - cp tests/resources/crypto_files/disposable.public.pem instance/public_cert.pem
@@ -11,22 +11,22 @@ py27:
   image: python:2.7
   tags: [ docker ]
   stage: test
-  script: detox -e $(tox --listenvs | grep "py27" | tr '\n' ',')
+  script: tox -e $(tox --listenvs | grep "py27" | tr '\n' ',')
 
 py34:
   image: python:3.4
   tags: [ docker ]
   stage: test
-  script: detox -e $(tox --listenvs | grep "py34" | tr '\n' ',')
+  script: tox -e $(tox --listenvs | grep "py34" | tr '\n' ',')
 
 py35:
   image: python:3.5
   tags: [ docker ]
   stage: test
-  script: detox -e $(tox --listenvs | grep "py35" | tr '\n' ',')
+  script: tox -e $(tox --listenvs | grep "py35" | tr '\n' ',')
 
 py36:
   image: python:3.6
   tags: [ docker ]
   stage: test
-  script: detox -e $(tox --listenvs | grep "py36" | tr '\n' ',')
+  script: tox -e $(tox --listenvs | grep "py36" | tr '\n' ',')
