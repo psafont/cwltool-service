@@ -1,11 +1,12 @@
 from __future__ import print_function
 import enum
 from uuid import uuid4
+from sqlalchemy.exc import SQLAlchemyError
 
 from sqlalchemy import Column, DateTime, Enum, String, UnicodeText, func
 from sqlalchemy_utils import JSONType, UUIDType
 
-from workflow_service.database import BASE
+from workflow_service.database import BASE, DB_SESSION
 
 
 @enum.unique  # pylint: disable=too-few-public-methods
@@ -47,3 +48,21 @@ class Job(BASE):  # pylint: disable=too-few-public-methods
         }
 
         return status
+
+
+def update_job(job, state, output):
+    """
+    Meant to run at the end of asynchronous tasks, in a separate thread,
+    which is why we can remove the per-thread db session
+    """
+    try:
+        session = DB_SESSION()
+        # update job in db
+        job.state = state
+        job.output = output
+        session.commit()
+    except SQLAlchemyError:
+        if session:
+            session.rollback()
+    finally:
+        DB_SESSION.remove()

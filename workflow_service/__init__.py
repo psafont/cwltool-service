@@ -13,6 +13,7 @@ from workflow_service.database import init_db_engine, init_db_models
 # jobid -> runner
 RUNNER_FOR = dict()
 
+
 def init_loggers(web_app):
     # flask is naughty and sets up default handlers
     # some spanking is in order

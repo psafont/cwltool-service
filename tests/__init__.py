@@ -66,6 +66,7 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
 
 CERT = x509.load_pem_x509_certificate(X509_DATA, default_backend())
 
+
 def configure_test_app():
     app = server.APP
     app.testing = True
@@ -78,6 +79,7 @@ def configure_test_app():
     client = app.test_client()
 
     return app, client
+
 
 def user_token(app, user):
     default_claims = {
@@ -97,6 +99,7 @@ def user_token(app, user):
         token = encode_token(claims, PEM_DATA)
 
     return token
+
 
 def now():
     return timegm(datetime.utcnow().utctimetuple())
