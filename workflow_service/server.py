@@ -64,7 +64,7 @@ def page_not_found(error):
 
 
 @APP.errorhandler(500)
-def badaboom(error):
+def internal_error_handler(error):
     APP.logger.error(error)
     return (
         jsonify(
@@ -99,7 +99,7 @@ def run_workflow():
         session.commit()
     except SQLAlchemyError:
         session.rollback()
-        return badaboom(
+        return internal_error_handler(
             u'Internal error: could not access persistence layer. ' +
             u'Please try again. If the error persists contact an admin.'
         )
