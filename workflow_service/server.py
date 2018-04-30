@@ -32,10 +32,7 @@ def url_location(url_root):
     def new_locations(job_runner, jobid):
         # replace locations in the outputs so web clients can retrieve all
         # the outputs
-        try:
-            output = json.loads(job_runner.output)
-        except TypeError:
-            output = None
+        output = json.loads(job_runner.output) if job_runner.output else {}
         return change_all_locations(
             output,
             url_root[:-1] + u'/jobs/' + jobid + u'/output')
@@ -53,7 +50,7 @@ def change_all_locations(obj, url_name):
         else:
             obj[u'location'] = url_name
     else:
-        APP.logger.error(
+        APP.logger.warning(
             u'Couldn\'t process output "%s" to change the locations', url_name)
     return obj
 
