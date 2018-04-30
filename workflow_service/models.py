@@ -49,8 +49,11 @@ class Job(BASE):  # pylint: disable=too-few-public-methods
 
         return status
 
+    def __repr__(self):
+        return str(self.status())
 
-def update_job(job, state, output):
+
+def update_job(flask_app, job, state, output):
     """
     Meant to run at the end of asynchronous tasks, in a separate thread,
     which is why we can remove the per-thread db session
@@ -62,7 +65,8 @@ def update_job(job, state, output):
         job.state = state
         job.output = output
         session.commit()
-    except SQLAlchemyError:
+    except SQLAlchemyError as err:
+        flask_app.logger.error(err)
         if session:
             session.rollback()
     finally:

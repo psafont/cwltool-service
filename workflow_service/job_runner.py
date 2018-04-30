@@ -31,13 +31,11 @@ class JobRunner(Thread):  # pylint: disable=R0902
                    f(JobRunner) -> None
     """
     def __init__(self, wf_path, input_obj, uuid,
-                 onsuccess=lambda *args, **kwargs: None,
-                 onfailure=lambda *args, **kwargs: None):
+                 onfinishing=lambda *args, **kwargs: None):
         super(JobRunner, self).__init__()
 
         self._inputobj = input_obj
-        self._onsuccess = onsuccess
-        self._onfailure = onfailure
+        self._onfinishing = onfinishing
         self.uuid = uuid
 
         self.state = State.Running
@@ -67,15 +65,15 @@ class JobRunner(Thread):  # pylint: disable=R0902
         stdoutdata, _ = self._proc.communicate(self._inputobj)
         if self._proc.returncode == 0:
             outobj = yaml.load(stdoutdata)
-            with self._updatelock:
-                self.state = State.Complete
-                self.output = outobj
-
-                self._onsuccess(self)
+            state = State.Complete
         else:
-            with self._updatelock:
-                self.state = State.Error
-                self._onfailure(self)
+            outobj = {}
+            state = State.Error
+
+        with self._updatelock:
+            self.state = state
+            self.output = outobj
+            self._onfinishing(self)
 
     def logspooler(self):
         with open(self.logname, 'r') as logfile:

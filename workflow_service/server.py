@@ -101,19 +101,21 @@ def run_workflow():
             u'Please try again. If the error persists contact an admin.'
         )
 
-    def when_successful(job_runner):
+    def on_finishing(job_runner):
         state = State.Error
         output = None
         try:
             output = url_location(url_root)(job_runner, str(job.id))
             state = job_runner.state
-        finally:
-            update_job(job, state, output)
+        except Exception as err:  # pylint: disable=broad-except
+            APP.logger.error(err)
 
-    def when_failed(job_runner):
-        update_job(job, job_runner.state, job_runner.output)
+        try:
+            update_job(APP, job, state, output)
+        except SQLAlchemyError as err:
+            APP.logger.error(err)
 
-    runner = JobRunner(path, body, job.id, when_successful, when_failed)
+    runner = JobRunner(path, body, job.id, on_finishing)
     RUNNER_FOR[job.id] = runner
     runner.start()
 
