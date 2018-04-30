@@ -58,6 +58,7 @@ def update_job(job, state, output):
     try:
         session = DB_SESSION()
         # update job in db
+        job = session.merge(job)
         job.state = state
         job.output = output
         session.commit()
