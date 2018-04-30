@@ -10,7 +10,12 @@ from aap_client.flask.client import JWTClient
 from workflow_service import server
 
 # pylint: disable=line-too-long
-WOFLO = u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/examples/1st-tool.cwl'
+WOFLOS = {
+    u'echo':(
+        u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/examples/1st-tool.cwl',
+        u'{"message": "sp:wap_rat"}'
+    )
+}
 
 PEM_DATA = u'''
 -----BEGIN RSA PRIVATE KEY-----
