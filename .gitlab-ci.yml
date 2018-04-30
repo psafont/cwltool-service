@@ -1,5 +1,10 @@
+services:
+  - postgres:9.5
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
+  POSTGRES_DB: nice_marmot
+  POSTGRES_USER: runner
+  POSTGRES_PASSWORD: a_password
 
 stages:
   - test
@@ -10,7 +15,7 @@ cache:
 
 before_script:
   - pip install tox
-  - cp instance/application.example.cfg instance/application.cfg
+  - sed "s/SQLALCHEMY_DATABASE_URI = .*/SQLALCHEMY_DATABASE_URI = 'postgresql:\/\/$POSTGRES_USER:$POSTGRES_PASSWORD@postgres\/$POSTGRES_DB'/g" instance/application.example.cfg > instance/application.cfg
   - cp tests/resources/crypto_files/disposable.private.pem instance/private_key.pem
   - cp tests/resources/crypto_files/disposable.public.pem instance/public_cert.pem
 
