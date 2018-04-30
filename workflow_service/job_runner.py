@@ -32,14 +32,12 @@ class JobRunner(Thread):  # pylint: disable=R0902
     """
     def __init__(self, wf_path, input_obj, uuid,
                  onsuccess=lambda *args, **kwargs: None,
-                 onfailure=lambda *args, **kwargs: None,
-                 owner=None):
+                 onfailure=lambda *args, **kwargs: None):
         super(JobRunner, self).__init__()
 
         self._inputobj = input_obj
         self._onsuccess = onsuccess
         self._onfailure = onfailure
-        self._owner = owner
         self.uuid = uuid
 
         self.state = State.Running
@@ -113,3 +111,6 @@ class JobRunner(Thread):  # pylint: disable=R0902
             if self.state == State.Paused:
                 self._proc.send_signal(SIGCONT)
                 self.state = State.Running
+
+    def __repr__(self):
+        return u'JobRunner {}:\t{}\t{}'.format(self.uuid, self.state, self.output)
