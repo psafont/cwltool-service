@@ -25,7 +25,7 @@ def init_loggers(web_app):
         "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
     web_app.logger.addHandler(handler)
-    web_app.logger.setLevel(logging.ERROR)
+    web_app.logger.setLevel(logging.WARNING)
 
 
 def init_db(db_uri):
