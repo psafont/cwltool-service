@@ -55,6 +55,9 @@ setup(
     packages=find_packages(exclude=['tests', 'instance', 'queries']),
 
     install_requires=INSTALL_DEPS,
+    dependency_links=[
+        'git+https://github.com/indigo-dc/udocker@devel'
+    ],
 
     setup_requires=['setuptools_scm'],
 
