@@ -61,7 +61,7 @@ setup(
 
     setup_requires=['setuptools_scm'],
 
-    python_requires='>=2.7, !=3.0',
+    python_requires='>=2.7, <3.0',
 
     extras_require={
         'test': TEST_DEPS,
