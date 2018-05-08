@@ -24,21 +24,3 @@ py27:
   tags: [ docker ]
   stage: test
   script: tox -e $(tox --listenvs | grep "py27" | tr '\n' ',')
-
-py34:
-  image: python:3.4
-  tags: [ docker ]
-  stage: test
-  script: tox -e $(tox --listenvs | grep "py34" | tr '\n' ',')
-
-py35:
-  image: python:3.5
-  tags: [ docker ]
-  stage: test
-  script: tox -e $(tox --listenvs | grep "py35" | tr '\n' ',')
-
-py36:
-  image: python:3.6
-  tags: [ docker ]
-  stage: test
-  script: tox -e $(tox --listenvs | grep "py36" | tr '\n' ',')
