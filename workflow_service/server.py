@@ -1,75 +1,42 @@
 from __future__ import print_function
 import os
-import logging
 
-from json import dumps
+import json
 from future.utils import iteritems
 
 from flask import (
-    Flask, Response, request, redirect, abort, send_from_directory, jsonify
+    Response, request, redirect, abort, send_from_directory, jsonify
 )
 
-from flask_cors import CORS
-
-from aap_client.crypto_files import (
-    load_public_from_x509, load_private_from_pem
-)
-from aap_client.flask.client import JWTClient
 from aap_client.flask.decorators import jwt_optional, jwt_required, get_user
+from sqlalchemy.exc import SQLAlchemyError
 
 import workflow_service.make_enum_json_serializable  # pylint: disable=W0611
 
-from workflow_service import JOBS, JOBS_LOCK, USER_OWNS, JOBS_OWNED_BY
-from workflow_service.decorators import job_exists, user_is_authorized
-from workflow_service.model.job import Job
+from workflow_service import app, RUNNER_FOR
 
-
-def app():
-    web_app = Flask(__name__, instance_relative_config=True)
-
-    CORS(web_app)
-    JWTClient(web_app)
-
-    # flask is naughty and sets up default handlers
-    # some spanking is in order
-    del web_app.logger.handlers[:]
-
-    # log errors to stderr
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-    web_app.logger.addHandler(handler)
-    web_app.logger.setLevel(logging.ERROR)
-
-    # configure
-    web_app.config[u'JWT_IDENTITY_CLAIM'] = u'sub'
-    web_app.config[u'JWT_ALGORITHM'] = u'RS256'
-
-    web_app.config.from_pyfile('application.cfg')
-
-    private_key_secret = web_app.config[u'PRIVATE_KEY_PASSCODE']
-    key = load_private_from_pem(web_app.config[u'PRIVATE_KEY_FILE'],
-                                secret=private_key_secret)
-    web_app.config[u'JWT_SECRET_KEY'] = key
-
-    public_key = load_public_from_x509(web_app.config[u'X509_FILE'])
-    web_app.config[u'JWT_PUBLIC_KEY'] = public_key
-    return web_app
-
-
+# We need to initialize the database engine before importing the models and
+# its dependencies because what these depend on it being ready to go.
+# We cannot have the database ready at the beginning because the URL to
+# establish the connection is gathered by Flask
 APP = app()
+
+from workflow_service.database import DB_SESSION # pylint: disable=C0413
+from workflow_service.models import Job, State, update_job # pylint: disable=C0413
+from workflow_service.decorators import user_owns_job # pylint: disable=C0413
+from workflow_service.job_runner import JobRunner # pylint: disable=C0413
 
 
 # changes location from local filesystem to flask endpoint URL
 def url_location(url_root):
-    def change_locations(job):
+    def new_locations(job_runner, jobid):
         # replace locations in the outputs so web clients can retrieve all
         # the outputs
-        change_all_locations(
-            job.output(),
-            url_root[:-1] + u'/jobs/' + str(job.jobid()) + u'/output')
-    return change_locations
+        output = json.loads(job_runner.output) if job_runner.output else {}
+        return change_all_locations(
+            output,
+            url_root[:-1] + u'/jobs/' + jobid + u'/output')
+    return new_locations
 
 
 def change_all_locations(obj, url_name):
@@ -83,8 +50,9 @@ def change_all_locations(obj, url_name):
         else:
             obj[u'location'] = url_name
     else:
-        APP.logger.error(
+        APP.logger.warning(
             u'Couldn\'t process output "%s" to change the locations', url_name)
+    return obj
 
 
 @APP.errorhandler(404)
@@ -93,7 +61,7 @@ def page_not_found(error):
 
 
 @APP.errorhandler(500)
-def badaboom(error):
+def internal_error_handler(error):
     APP.logger.error(error)
     return (
         jsonify(
@@ -102,71 +70,82 @@ def badaboom(error):
         500
     )
 
+
+@APP.teardown_appcontext
+def shutdown_session(exception=None):  # pylint: disable=unused-argument
+    DB_SESSION.remove()
+
+
 @APP.route(u'/health', methods=[u'GET'])
-def healthcheck():
+def health_report():
     return Response('It\'s alive!')
+
 
 @APP.route(u'/run', methods=[u'POST'])
 @jwt_optional
 def run_workflow():
     path = request.args[u'wf']
     current_user = get_user()
-    oncompletion = url_location(request.url_root)
     body = request.stream.read()
+    url_root = request.url_root
 
-    with JOBS_LOCK:
-        job = Job(path, body, request.url_root,
-                  oncompletion=oncompletion, owner=current_user)
-        jobid = job.jobid()
-        JOBS[jobid] = job
+    session = DB_SESSION()
+    try:
+        job = Job(path, body, request.url_root, current_user)
+        session.add(job)
+        session.commit()
+    except SQLAlchemyError:
+        session.rollback()
+        return internal_error_handler(
+            u'Internal error: could not access persistence layer. ' +
+            u'Please try again. If the error persists contact an admin.'
+        )
 
-    if current_user:  # non-anonymous user
-        USER_OWNS[jobid] = current_user
-        JOBS_OWNED_BY[current_user] =\
-            JOBS_OWNED_BY.get(current_user, []) + [jobid]
-    job.start()
-    return redirect(u'/jobs/{}'.format(jobid), code=303)
+    def on_finishing(job_runner):
+        state = State.Error
+        output = None
+        try:
+            output = url_location(url_root)(job_runner, str(job.id))
+            state = job_runner.state
+        except Exception as err:  # pylint: disable=broad-except
+            APP.logger.error(err)
+
+        try:
+            update_job(APP, job, state, output)
+        except SQLAlchemyError as err:
+            APP.logger.error(err)
+
+    runner = JobRunner(path, body, job.id, on_finishing)
+    RUNNER_FOR[job.id] = runner
+    runner.start()
+
+    return redirect(u'/jobs/{}'.format(job.id), code=303)
 
 
-@APP.route(u'/jobs/<string:jobid>',
-           methods=[u'GET', u'POST'],
+@APP.route(u'/jobs/<uuid:jobid>',
+           methods=[u'GET'],
            strict_slashes=False)
 @jwt_optional
-@job_exists
-@user_is_authorized
+@user_owns_job
 def job_control(jobid):
-    job = getjob(jobid)
-
-    if request.method == u'POST':
-        action = request.args.get(u'action')
-        if action:
-            if action == u'cancel':
-                job.cancel()
-            elif action == u'pause':
-                job.pause()
-            elif action == u'resume':
-                job.resume()
-
-    return dumps(job.status()), 200, u''
+    job = job_from_id(jobid)
+    return json.dumps(job.status()), 200, u''
 
 
-@APP.route(u'/jobs/<string:jobid>/log', methods=[u'GET'])
+@APP.route(u'/jobs/<uuid:jobid>/log', methods=[u'GET'])
 @jwt_optional
-@job_exists
-@user_is_authorized
+@user_owns_job
 def get_log(jobid):
-    job = getjob(jobid)
-    return Response(job.logspooler(), mimetype='text/event-stream')
+    return Response(RUNNER_FOR[jobid].logspooler(), mimetype='text/event-stream')
 
 
-@APP.route(u'/jobs/<string:jobid>/output/<path:outputid>', methods=[u'GET'])
+@APP.route(u'/jobs/<uuid:jobid>/output/<path:outputid>', methods=[u'GET'])
 @jwt_optional
-@job_exists
-@user_is_authorized
+@user_owns_job
 def get_output(jobid, outputid):
-    job = getjob(jobid)
+    job = job_from_id(jobid)
 
-    output = getoutputobj(job.status(), outputid)
+    output = getoutputobj(job.status, outputid)
     if not output or not isfile(output):
         return abort(404)
 
@@ -180,12 +159,8 @@ def get_output(jobid, outputid):
 @APP.route(u'/jobs', methods=[u'GET'], strict_slashes=False)
 @jwt_required
 def get_jobs():
-    job_ids = JOBS_OWNED_BY.get(get_user(), [])
-    jobs = []
-    with JOBS_LOCK:
-        for job_id in job_ids:
-            jobs.append(JOBS[job_id])
-    return Response(spool(jobs))
+    jobs = jobs_from_owner(get_user())
+    return Response(spool(jobs), mimetype='application/json')
 
 
 def getoutputobj(status, outputid):
@@ -212,17 +187,31 @@ def getfile(file_dict):
     return os.path.split(file_dict[u'path']), file_dict[u'basename']
 
 
-def getjob(jobid):
-    with JOBS_LOCK:
-        job = JOBS[jobid]
-    return job
+def job_from_id(jobid):
+    return _filter_jobs(Job.id, jobid).first()
+
+
+def jobs_from_owner(owner):
+    return _filter_jobs(Job.owner, owner)
+
+
+def _filter_jobs(key, value):
+    jobs = []
+
+    try:
+        session = DB_SESSION()
+        jobs = session.query(Job).filter(key == value)
+    except SQLAlchemyError:
+        abort(500)
+
+    return jobs
 
 
 def spool(jobs):
     yield u'['
     connector = u''
     for job in jobs:
-        yield connector + dumps(job.status())
+        yield connector + json.dumps(job.status())
         if connector == u'':
             connector = u', '
     yield u']'

@@ -1,8 +1,9 @@
 cwltool==1.0.20180306163216
-cwl-runner==1.0
 Flask==0.12.2
 Flask-Cors==3.0.3
-aap-client-python==0.1.1
+aap-client-python==0.1.3
 cryptography==2.1.4
 PyYAML==3.12
 future==0.16.0
+SQLAlchemy==1.2.6
+SQLAlchemy-Utils==0.33.2
