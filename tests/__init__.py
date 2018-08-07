@@ -1,5 +1,8 @@
+import time
 from calendar import timegm
 from datetime import datetime
+
+import pytest
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -8,14 +11,21 @@ from flask import json
 from aap_client.tokens import encode_token
 from aap_client.flask.client import JWTClient
 from workflow_service import server
+from workflow_service.models import State
 
 # pylint: disable=line-too-long
-WOFLOS = {
-    u'echo':(
-        u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/examples/1st-tool.cwl',
-        u'{"message": "sp:wap_rat"}'
-    )
-}
+@pytest.fixture
+def workflows_and_inputs():
+    return {
+        u'echo': (
+            u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/examples/1st-tool.cwl',
+            u'{"message": "sp:wap_rat"}'
+        ),
+        u'createfile': (
+            u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/examples/createfile.cwl'
+            u'file content'
+        )
+    }
 
 PEM_DATA = u'''
 -----BEGIN RSA PRIVATE KEY-----
@@ -72,7 +82,8 @@ NOqbOxbFp+hObyESwGdHbRlBCfGS+thrW5Q1lROMgg==
 CERT = x509.load_pem_x509_certificate(X509_DATA, default_backend())
 
 
-def configure_test_app():
+@pytest.fixture
+def app_client():
     app = server.APP
     app.testing = True
 
@@ -106,6 +117,16 @@ def user_token(app, user):
     return token
 
 
+@pytest.fixture
+def token_authenticated(app_client):
+    return user_token(app_client[0], u'jeff')
+
+
+@pytest.fixture
+def token_snooper(app_client):
+    return user_token(app_client[0], u'nisu')
+
+
 def now():
     return timegm(datetime.utcnow().utctimetuple())
 
@@ -136,3 +157,17 @@ def request(client, verb, url, token=None, data=None):
         pass
         # pass data as-is, without deserializing (for logs)
     return status_code, data
+
+def wait_for_completion(client, job_id, timeout):
+    running = True
+    overdue = False
+    start = time.time()
+    while running and not overdue:
+        status_code, data = request(client, u'get',
+                                    u'/jobs/' + job_id
+                                   )
+        assert status_code == 200
+        if u'state' in data and data[u'state'] != State.Running.value:
+            running = False
+        overdue = time.time() - start > timeout
+    return data[u'state']

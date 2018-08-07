@@ -21,8 +21,7 @@ INSTALL_DEPS = [
     'ruamel.yaml<=0.15.51'
 ]
 TEST_DEPS = [
-    'pytest',
-    'unittest2'
+    'pytest'
 ]
 DEV_DEPS = []
 
