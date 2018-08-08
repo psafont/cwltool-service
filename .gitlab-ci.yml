@@ -1,10 +1,12 @@
 services:
   - postgres:9.5
+  - docker:dind
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
   POSTGRES_DB: nice_marmot
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: a_password
+  DOCKER_DRIVER: overlay2
 
 stages:
   - test

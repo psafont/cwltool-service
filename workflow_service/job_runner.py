@@ -53,7 +53,6 @@ class JobRunner(Thread):  # pylint: disable=R0902
             self._proc = Popen([prefix + u'/bin/python',
                                 u'-m',
                                 u'cwltool',
-                                u'--user-space-docker-cmd=udocker',
                                 u'--leave-outputs', wf_path, u'-'],
                                stdin=PIPE,
                                stdout=PIPE,

@@ -5,7 +5,6 @@ from workflow_service.models import State
 from tests import app_client, request, wait_for_completion, workflows_and_inputs
 
 
-@pytest.mark.skip(reason="Udocker setup in CI is failing")
 def test_echo_workflow(app_client, workflows_and_inputs):
     _, client = app_client
     woflo, input_data = workflows_and_inputs[u'echo']
@@ -19,7 +18,7 @@ def test_echo_workflow(app_client, workflows_and_inputs):
 
     job_id = data[u'id'].split('/')[-1]
 
-    state = wait_for_completion(client, job_id, 10)
+    state = wait_for_completion(client, job_id, 30)
 
     _, log = request(client, u'get',
                      u'/jobs/' + job_id + u'/log'
