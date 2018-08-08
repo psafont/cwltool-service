@@ -152,11 +152,12 @@ def request(client, verb, url, token=None, data=None):
 
     status_code = response.status_code
     try:
-        data = json.loads(response.get_data(as_text=True))
+        body = response.get_data(as_text=True)
+        body = json.loads(body)
     except ValueError:
         pass
-        # pass data as-is, without deserializing (for logs)
-    return status_code, data
+        # pass body as-is, without deserializing (for logs)
+    return status_code, body
 
 def wait_for_completion(client, job_id, timeout):
     running = True
@@ -169,5 +170,7 @@ def wait_for_completion(client, job_id, timeout):
         assert status_code == 200
         if u'state' in data and data[u'state'] != State.Running.value:
             running = False
+        if running:
+            time.sleep(1)
         overdue = time.time() - start > timeout
     return data[u'state']

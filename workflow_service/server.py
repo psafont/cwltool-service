@@ -62,7 +62,7 @@ def page_not_found(error):
 
 @APP.errorhandler(500)
 def internal_error_handler(error):
-    APP.logger.error(error)
+    APP.logger.exception(error)
     return (
         jsonify(
             error=500,
@@ -86,7 +86,7 @@ def health_report():
 def run_workflow():
     path = request.args[u'wf']
     current_user = get_user()
-    body = request.stream.read()
+    body = request.stream.read().decode(u'utf-8')
     url_root = request.url_root
 
     session = DB_SESSION()

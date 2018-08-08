@@ -17,7 +17,7 @@ invalid_job_ids = [
 @pytest.mark.parametrize('name, jid', invalid_job_ids)
 def test_invalid_jobids(name, jid, app_client):
     _, client = app_client
-    for endpoint in ('', '/log', 'output/test'):
+    for endpoint in ('', '/log', '/output/test'):
         status_code, _ = request(client, u'get',
                                  u'/jobs/' + jid + endpoint
                                 )
