@@ -32,7 +32,7 @@ def url_location(url_root):
     def new_locations(job_runner, jobid):
         # replace locations in the outputs so web clients can retrieve all
         # the outputs
-        output = json.loads(job_runner.output) if job_runner.output else {}
+        output = job_runner.output if job_runner.output else {}
         return change_all_locations(
             output,
             url_root[:-1] + u'/jobs/' + jobid + u'/output')
@@ -108,7 +108,7 @@ def run_workflow():
             output = url_location(url_root)(job_runner, str(job.id))
             state = job_runner.state
         except Exception as err:  # pylint: disable=broad-except
-            APP.logger.error(err)
+            APP.logger.exception(err)
 
         try:
             update_job(APP, job, state, output)

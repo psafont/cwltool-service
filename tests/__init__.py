@@ -22,8 +22,8 @@ def workflows_and_inputs():
             u'{"message": "sp:wap_rat"}'
         ),
         u'createfile': (
-            u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/examples/createfile.cwl'
-            u'file content'
+            u'https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/v1.0/v1.0/echo-file-tool.cwl',
+            u'{"in": "hello"}'
         )
     }
 
