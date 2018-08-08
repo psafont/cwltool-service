@@ -47,6 +47,11 @@ setup(
 
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
 
     keywords='wes workflow cwl flask',
@@ -54,13 +59,10 @@ setup(
     packages=find_packages(exclude=['tests', 'instance', 'queries']),
 
     install_requires=INSTALL_DEPS,
-    dependency_links=[
-        'git+https://github.com/indigo-dc/udocker@devel'
-    ],
 
     setup_requires=['setuptools_scm'],
 
-    python_requires='>=2.7, <3.0',
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4.0',
 
     extras_require={
         'test': TEST_DEPS,
