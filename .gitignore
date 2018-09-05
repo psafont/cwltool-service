@@ -20,3 +20,6 @@ dist/
 
 # flask deployment config
 instance/
+
+# sqlite database
+app.db
