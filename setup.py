@@ -8,17 +8,17 @@ with codecs.open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
     LONG_DESC = f.read()
 
 INSTALL_DEPS = [
-    'cwltool==1.0.20180306163216',
-    'cwl-runner==1.0',
-    'Flask==0.12.2',
-    'Flask-Cors==3.0.3',
+    'cwltool==1.0.20180820141117',
+    'Flask==1.0.2',
+    'Flask-Cors==3.0.6',
     'aap-client-python==0.1.4',
-    'cryptography==2.2.2',
-    'PyYAML==3.12',
+    'cryptography==2.3.1',
+    'PyYAML==3.13',
     'future==0.16.0',
-    'SQLAlchemy==1.2.6',
-    'psycopg2==2.7.4',
-    'SQLAlchemy-Utils==0.33.2'
+    'SQLAlchemy==1.2.11',
+    'psycopg2==2.7.5',
+    'SQLAlchemy-Utils==0.33.3',
+    'ruamel.yaml<=0.15.51'
 ]
 TEST_DEPS = [
     'pytest',
