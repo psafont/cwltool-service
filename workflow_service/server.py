@@ -145,7 +145,7 @@ def get_log(jobid):
 def get_output(jobid, outputid):
     job = job_from_id(jobid)
 
-    output = getoutputobj(job.status, outputid)
+    output = getoutputobj(job.status(), outputid)
     if not output or not isfile(output):
         return abort(404)
 
