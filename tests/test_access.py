@@ -1,10 +1,13 @@
 import pytest
 
+from workflow_service.models import State
+
 from tests import (
     app_client,
     request,
     token_authenticated,
     token_snooper,
+    wait_for_completion,
     workflows_and_inputs
 )
 
@@ -129,6 +132,32 @@ def test_authenticated_snooper(
     id_list = [job[u'id'].split('/')[-1] for job in data]
     assert job_id not in id_list,\
         'The job id ({}) from other users should not be visible in /jobs'.format(job_id)
+
+def test_authenticated_download(app_client, workflows_and_inputs, token_authenticated):
+    _, client = app_client
+    woflo, input_data = workflows_and_inputs[u'createfile']
+    status_code, data = request(client, u'post',
+                                u'/run?wf=' + woflo,
+                                data=input_data
+                               )
+    assert status_code == 200
+    assert data[u'input'] == input_data
+    assert u'id' in data
+
+    job_id = data[u'id'].split('/')[-1]
+
+    state = wait_for_completion(client, job_id, 30)
+
+    _, log = request(client, u'get',
+                     u'/jobs/' + job_id + u'/log'
+                    )
+    assert state == State.Complete.value, log
+
+    status_code, data = request(client, u'get',
+                                u'/jobs/' + job_id + u'/output/out',
+                                token=token_authenticated
+                               )
+    assert status_code == 200
 
 def test_trailing_slashes(app_client, workflows_and_inputs):
     woflo, input_data = workflows_and_inputs['echo']
