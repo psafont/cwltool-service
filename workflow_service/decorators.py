@@ -25,7 +25,9 @@ def user_owns_job(func):
             session = DB_SESSION()
 
             job = session.query(Job).filter(
-                Job.id == jobid, Job.owner == current_user
+                Job.id == jobid,
+                (Job.owner == current_user) |
+                (Job.owner == None)
             ).first()
         except OperationalError:
             return abort(500)
