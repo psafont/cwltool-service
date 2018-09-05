@@ -11,10 +11,6 @@ variables:
 stages:
   - test
 
-cache:
-  paths:
-    - .cache/pip
-
 before_script:
   - pip install tox
   - sed "s/SQLALCHEMY_DATABASE_URI = .*/SQLALCHEMY_DATABASE_URI = 'postgresql:\/\/$POSTGRES_USER:$POSTGRES_PASSWORD@postgres\/$POSTGRES_DB'/g" instance/application.example.cfg > instance/application.cfg
