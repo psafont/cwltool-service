@@ -4,10 +4,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from aap_client.flask.client import JWTClient
-from aap_client.crypto_files import (
-    load_public_from_x509, load_private_from_pem
-)
-
+from aap_client.crypto_files import load_public_from_x509
 from workflow_service.database import init_db_engine, init_db_models
 
 # jobid -> runner
@@ -52,11 +49,6 @@ def configure_app(web_app, config):
     # set up new url mapper to load uuids
     from workflow_service.decorators import UUIDConverter
     web_app.url_map.converters['uuid'] = UUIDConverter
-
-    private_key_secret = web_app.config[u'PRIVATE_KEY_PASSCODE']
-    key = load_private_from_pem(web_app.config[u'PRIVATE_KEY_FILE'],
-                                secret=private_key_secret)
-    web_app.config[u'JWT_SECRET_KEY'] = key
 
     public_key = load_public_from_x509(web_app.config[u'X509_FILE'])
     web_app.config[u'JWT_PUBLIC_KEY'] = public_key
